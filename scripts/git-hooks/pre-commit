@@ -1,0 +1,21 @@
+#!/bin/sh
+# Hook de pre-commit: roda as verificações DENTRO do container da API
+# (somente leitura, sem root, sem rede exposta). O host só precisa de git e Docker.
+#
+# Instalação (copie, não crie link: assim uma alteração neste arquivo feita de dentro
+# de um container não passa a rodar no seu computador sem você reinstalar):
+#   cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# Observação: verifica os arquivos como estão na pasta (não só o que está no "git add").
+set -eu
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "pre-commit: ruff check, ruff format --check e mypy (no container)..."
+docker compose run --rm --no-deps -T app sh -c \
+  'ruff check . && ruff format --check . && mypy src' || {
+  echo
+  echo "pre-commit: commit bloqueado. Corrija os erros acima."
+  echo "Para formatar: docker compose run --rm --no-deps tools ruff format ."
+  exit 1
+}

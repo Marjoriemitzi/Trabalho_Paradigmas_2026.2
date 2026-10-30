@@ -1,0 +1,112 @@
+# Ambiente de desenvolvimento.
+# Os valores ${...} vêm do arquivo .env (copie de .env.example e troque as senhas).
+#
+# Regras de segurança deste arquivo:
+#   - portas publicadas só em 127.0.0.1 (nada fica visível na rede local)
+#   - a API monta o código como somente leitura e roda sem root e sem capabilities
+#   - a API conecta ao banco com um usuário comum, nunca com o superusuário
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+
+# Só as variáveis que a API precisa (as senhas do superusuário não entram aqui).
+x-app-env: &app-env
+  DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:?defina APP_DB_USER no .env}:${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}@db:5432/${POSTGRES_DB:?defina POSTGRES_DB no .env}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  ENABLE_DOCS: ${ENABLE_DOCS:-false}
+  # Sistema de arquivos é só leitura: caches vão para /tmp.
+  COVERAGE_FILE: /tmp/.coverage
+  PYTEST_ADDOPTS: -p no:cacheprovider
+  RUFF_CACHE_DIR: /tmp/.ruff_cache
+  MYPY_CACHE_DIR: /tmp/.mypy_cache
+  XDG_CACHE_HOME: /tmp/.cache
+
+services:
+  app:
+    <<: *hardening
+    image: finance-manager-dev:local
+    build:
+      context: .
+      target: dev
+    command: uvicorn finance_manager.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./rules:/app/rules:ro
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - ./migrations:/app/migrations:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Comandos que precisam GRAVAR arquivos do projeto: formatar código, gerar migrations e
+  # alterar dependências. Não sobe com "docker compose up" e não expõe portas.
+  # Uso: docker compose run --rm tools <comando>
+  tools:
+    <<: *hardening
+    profiles: ["tools"]
+    image: finance-manager-dev:local
+    pull_policy: never
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./migrations:/app/migrations
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./rules:/app/rules:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    <<: *hardening
+    image: postgres:16@sha256:1beaa3084eee2676f20a9cd9928f0bf2c5bf674f8e49f81017912183d377c61c
+    # O entrypoint do Postgres só precisa destas capabilities para ajustar permissões e trocar de usuário.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env}
+      APP_DB_USER: ${APP_DB_USER:?defina APP_DB_USER no .env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
+      # Exige senha (scram) inclusive em conexões de dentro do container (o padrão da imagem é "trust").
+      POSTGRES_INITDB_ARGS: --auth-local=scram-sha-256 --auth-host=scram-sha-256
+    ports:
+      # Só para clientes SQL no seu computador (DBeaver, psql...). Remova se não usar.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Cria o usuário da aplicação na primeira inicialização do volume.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
