@@ -1,0 +1,1 @@
+# Trabalho_Paradigmas_2026.2
