@@ -13,3 +13,6 @@ class FakeUserRepository:
 
     async def exists(self, email: Email) -> bool:
         return email in self._by_email
+
+    def stored(self, email: Email) -> User | None:
+        return self._by_email.get(email)
