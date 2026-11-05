@@ -34,7 +34,7 @@ services:
     build:
       context: ./Backend
       target: dev
-    command: uvicorn finance_manager.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
     read_only: true
     tmpfs:
       - /tmp

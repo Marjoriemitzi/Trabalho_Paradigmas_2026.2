@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Gerenciador de finanças pessoais — FastAPI + Prolog"
 authors = ["Samuel Caetano <samueln.caetano42@gmail.com>"]
 readme = "README.md"
-packages = [{ include = "finance_manager", from = "src" }]
+packages = [{ include = "app", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -60,10 +60,10 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-addopts = "--cov=finance_manager --cov-report=term-missing"
+addopts = "--cov=app --cov-report=term-missing"
 
 [tool.taskipy.tasks]
-run = "uvicorn finance_manager.main:app --reload"
+run = "uvicorn app.main:app --reload"
 test = "pytest"
 lint = "ruff check ."
 format = "ruff format ."
