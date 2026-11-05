@@ -23,3 +23,16 @@ class RawPassword:
         Só quem vai gerar o hash deve chamar.
         """
         return self._secret
+
+
+@dataclass(frozen=True, slots=True)
+class PasswordHash:
+    """
+    Hash da senha, o único formato que pode ser persistido.
+    """
+
+    value: str = field(repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise ValueError("O hash não pode ser vazio.")
