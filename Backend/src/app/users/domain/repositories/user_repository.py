@@ -1,0 +1,14 @@
+"""
+Porta de saída:
+    Como o domínio guarda e encontra usuários.
+"""
+
+from typing import Protocol
+
+from app.users.domain.entities.user import User
+from app.users.domain.value_objects.email import Email
+
+
+class UserRepository(Protocol):
+    async def add(self, user: User) -> None: ...
+    async def exists(self, email: Email) -> bool: ...
