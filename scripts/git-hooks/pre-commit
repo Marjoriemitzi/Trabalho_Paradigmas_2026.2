@@ -21,7 +21,7 @@ changed() {
 if changed Backend/ docker-compose.yml; then
   echo "pre-commit [backend]: ruff check, ruff format --check e mypy (no container)..."
   docker compose run --rm --no-deps -T app sh -c \
-    'ruff check . && ruff format --check . && mypy src' || {
+    'ruff check . && ruff format --check . && mypy src tests' || {
     echo
     echo "pre-commit: commit bloqueado. Corrija os erros acima."
     echo "Para formatar: docker compose run --rm --no-deps tools ruff format ."

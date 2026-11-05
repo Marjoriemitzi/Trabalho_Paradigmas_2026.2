@@ -49,6 +49,7 @@ select = ["E", "F", "I", "N", "UP", "B", "S", "C4", "SIM", "RUF"]
 
 [tool.mypy]
 python_version = "3.12"
+mypy_path = "src"
 strict = true
 plugins = ["pydantic.mypy"]
 
@@ -70,6 +71,6 @@ run = "uvicorn app.main:app --reload"
 test = "pytest"
 lint = "ruff check ."
 format = "ruff format ."
-typecheck = "mypy src"
+typecheck = "mypy src tests"
 audit = "pip-audit --skip-editable --progress-spinner off"
-check = "ruff check . && mypy src && pytest && pip-audit --skip-editable --progress-spinner off"
+check = "ruff check . && mypy src tests && pytest && pip-audit --skip-editable --progress-spinner off"
