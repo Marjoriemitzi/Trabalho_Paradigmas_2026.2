@@ -1,0 +1,40 @@
+# Serviço usado só pelo VS Code Dev Container do backend.
+#
+# Fica separado do serviço "app" (que expõe a API) de propósito: o VS Code coloca
+# no container do editor o seu SSH agent e as credenciais do git. Assim, se a API for
+# comprometida, esse container com credenciais não é atingido.
+#
+# Só a pasta Backend/ é montada (em /app). Os arquivos da raiz do monorepo que conseguem
+# executar comandos no seu computador (.git/, .devcontainer/, docker-compose.yml, scripts/,
+# .gitignore) nem entram no container, então não podem ser alterados daqui.
+#
+# Dentro de Backend/ a pasta é montada com escrita (você edita o código aqui), MAS estes
+# arquivos ficam somente leitura:
+#   - Dockerfile     -> poderia montar o disco do host no próximo build
+#   - .gitignore     -> impede que arquivos sensíveis vão para o git
+#   - .dockerignore  -> impede que segredos entrem na imagem
+# Para alterar esses arquivos, edite pelo terminal do WSL (fora do container).
+# ATENÇÃO: com vários arquivos de compose, caminhos relativos partem da pasta do PRIMEIRO
+# arquivo (a raiz do monorepo), não desta pasta. Por isso aqui é "./Backend".
+services:
+  dev:
+    build:
+      context: ./Backend
+      target: dev
+    command: sleep infinity
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:?defina APP_DB_USER no .env}:${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}@db:5432/${POSTGRES_DB:?defina POSTGRES_DB no .env}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENABLE_DOCS: ${ENABLE_DOCS:-false}
+    volumes:
+      - ./Backend:/app
+      - ./Backend/Dockerfile:/app/Dockerfile:ro
+      - ./Backend/.gitignore:/app/.gitignore:ro
+      - ./Backend/.dockerignore:/app/.dockerignore:ro
+    depends_on:
+      db:
+        condition: service_healthy

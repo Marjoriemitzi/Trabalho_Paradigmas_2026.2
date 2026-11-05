@@ -1,10 +1,15 @@
-# Ambiente de desenvolvimento.
-# Os valores ${...} vêm do arquivo .env (copie de .env.example e troque as senhas).
+# Ambiente de desenvolvimento do monorepo. Rode os comandos "docker compose" na raiz.
+# Os valores ${...} vêm do arquivo .env da raiz (copie de .env.example e troque as senhas).
+# Quando o frontend (Elm) tiver container, ele entra aqui como mais um serviço.
 #
 # Regras de segurança deste arquivo:
 #   - portas publicadas só em 127.0.0.1 (nada fica visível na rede local)
 #   - a API monta o código como somente leitura e roda sem root e sem capabilities
 #   - a API conecta ao banco com um usuário comum, nunca com o superusuário
+
+# Nome fixo do projeto: assim o nome dos containers e do volume do banco não depende
+# do nome da pasta onde o repositório foi clonado.
+name: finance-manager
 
 x-hardening: &hardening
   security_opt:
@@ -27,7 +32,7 @@ services:
     <<: *hardening
     image: finance-manager-dev:local
     build:
-      context: .
+      context: ./Backend
       target: dev
     command: uvicorn finance_manager.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
     read_only: true
@@ -36,12 +41,12 @@ services:
     cap_drop:
       - ALL
     volumes:
-      - ./src:/app/src:ro
-      - ./tests:/app/tests:ro
-      - ./rules:/app/rules:ro
-      - ./pyproject.toml:/app/pyproject.toml:ro
-      - ./migrations:/app/migrations:ro
-      - ./alembic.ini:/app/alembic.ini:ro
+      - ./Backend/src:/app/src:ro
+      - ./Backend/tests:/app/tests:ro
+      - ./Backend/rules:/app/rules:ro
+      - ./Backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./Backend/migrations:/app/migrations:ro
+      - ./Backend/alembic.ini:/app/alembic.ini:ro
     ports:
       - "127.0.0.1:8000:8000"
     environment: *app-env
@@ -63,13 +68,13 @@ services:
     cap_drop:
       - ALL
     volumes:
-      - ./src:/app/src
-      - ./tests:/app/tests
-      - ./migrations:/app/migrations
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
-      - ./rules:/app/rules:ro
-      - ./alembic.ini:/app/alembic.ini:ro
+      - ./Backend/src:/app/src
+      - ./Backend/tests:/app/tests
+      - ./Backend/migrations:/app/migrations
+      - ./Backend/pyproject.toml:/app/pyproject.toml
+      - ./Backend/poetry.lock:/app/poetry.lock
+      - ./Backend/rules:/app/rules:ro
+      - ./Backend/alembic.ini:/app/alembic.ini:ro
     environment: *app-env
     depends_on:
       db:
@@ -101,7 +106,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Cria o usuário da aplicação na primeira inicialização do volume.
-      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./Backend/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s

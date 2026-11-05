@@ -1,6 +1,6 @@
 {
-  "name": "finance-manager",
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.devcontainer.yml"],
+  "name": "finance-manager (backend)",
+  "dockerComposeFile": ["../../docker-compose.yml", "docker-compose.devcontainer.yml"],
   "service": "dev",
   "runServices": ["dev", "app", "db"],
   "workspaceFolder": "/app",

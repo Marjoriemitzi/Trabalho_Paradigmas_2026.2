@@ -1,70 +1,34 @@
-# Gerenciador de Finanças Pessoais
+# Backend — Gerenciador de Finanças Pessoais
 
 Backend em FastAPI + Prolog, Clean Architecture + DDD.
 
-Todo o projeto roda dentro do Docker: a API, o banco, os testes, o lint e as migrations.
-**O seu computador só precisa de git e Docker.** Nenhuma dependência Python do projeto é
-instalada fora dos containers.
+Todo o backend roda dentro do Docker: a API, o banco, os testes, o lint e as migrations.
+Nenhuma dependência Python do projeto é instalada fora dos containers.
 
-## Requisitos
-
-- git
-- Docker com Docker Compose v2
-  - No Windows/WSL2: Docker Desktop → Settings → Resources → **WSL Integration** → ative a sua distro.
+> **Os comandos `docker compose` deste README rodam na raiz do monorepo**, onde fica o
+> `docker-compose.yml`. O setup inicial (`.env`, subir os containers, hook de commit) está no
+> [README da raiz](../README.md).
 
 > ⚠️ Não rode `poetry install`, `pip install` ou `poetry run ...` no seu computador. Se a pasta
 > `.venv/` aparecer no projeto, apague-a: código dentro dela poderia ser alterado de dentro do
 > Dev Container e depois executado fora dele.
 
-## Setup depois do clone
+## Primeira execução
 
-```bash
-git clone <url-do-repositorio> finance-manager
-cd finance-manager
-```
-
-**1. Crie o `.env` com senhas fortes.** Ele nunca vai para o git.
-
-```bash
-cp .env.example .env && chmod 600 .env
-sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/; s/^APP_DB_PASSWORD=.*/APP_DB_PASSWORD=$(openssl rand -hex 32)/" .env
-```
-
-**2. Construa e suba os containers.**
-
-```bash
-docker compose build
-docker compose up -d
-docker compose ps                          # app = running, db = healthy
-curl http://127.0.0.1:8000/health          # {"status":"ok"}
-```
-
-Na primeira subida, o banco cria sozinho o usuário da aplicação (`db/init/`).
-
-**3. Aplique as migrations.**
+Depois do setup da raiz, aplique as migrations e rode as verificações. O resultado esperado é
+`All checks passed!`, `Success: no issues found`, todos os testes passando e
+`No known vulnerabilities found`.
 
 ```bash
 docker compose exec app alembic upgrade head
 docker compose exec app alembic current
-```
-
-**4. Rode as verificações.** O resultado esperado é `All checks passed!`, `Success: no issues found`,
-todos os testes passando e `No known vulnerabilities found`.
-
-```bash
 docker compose exec app task check
 ```
 
-**5. Instale o hook de commit.** Ele roda ruff e mypy dentro do container a cada `git commit`.
-Instale por **cópia** (não por link), para que uma alteração no script não passe a rodar no seu
-computador sem você saber. Repita o comando sempre que `scripts/git-hooks/pre-commit` mudar.
+Na primeira subida, o banco cria sozinho o usuário da aplicação (`Backend/db/init/`).
 
-```bash
-cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
-```
-
-Pronto. A API está em http://127.0.0.1:8000. A documentação fica em `/docs` quando
-`ENABLE_DOCS=true` no `.env`.
+A API fica em http://127.0.0.1:8000. A documentação fica em `/docs` quando `ENABLE_DOCS=true`
+no `.env`.
 
 ## Dia a dia
 
@@ -129,21 +93,21 @@ docker compose down -v                     # ⚠️ APAGA todos os dados e recri
 
 ## Dev Container (VS Code)
 
-Paleta de comandos → **Dev Containers: Reopen in Container**. O editor, o autocomplete e o
+Abra a raiz do monorepo no VS Code, e então paleta de comandos →
+**Dev Containers: Reopen in Container** → escolha **finance-manager (backend)**. O editor, o autocomplete e o
 terminal ficam dentro de um container separado da API.
 
-Dentro do Dev Container, estes arquivos são **somente leitura** de propósito, porque conseguiriam
-executar comandos no seu computador ou vazar segredos. Edite-os pelo terminal do host:
+O container monta só a pasta `Backend/`. Os arquivos da raiz que conseguem executar comandos
+no seu computador (`.git/`, `.devcontainer/`, `docker-compose.yml`, `scripts/`, `.gitignore`)
+nem entram nele. Dentro de `Backend/`, estes ficam **somente leitura** de propósito:
+`Dockerfile`, `.gitignore`, `.dockerignore`. Edite-os pelo terminal do host.
 
-`.git/hooks`, `.git/config`, `.devcontainer/`, `docker-compose.yml`, `Dockerfile`, `scripts/`,
-`.gitignore`, `.dockerignore`
-
-Os commits também são feitos pelo terminal do host (a imagem não tem git).
+Os commits são feitos pelo terminal do host (a imagem não tem git).
 
 ## Imagem de produção
 
 ```bash
-docker build --target runtime -t finance-manager .
+docker build --target runtime -t finance-manager Backend
 docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true \
   -p 127.0.0.1:8000:8000 -e DATABASE_URL="postgresql+asyncpg://..." finance-manager
 ```
@@ -162,7 +126,7 @@ desligado por padrão.
   docker pull python:3.12-slim && docker inspect --format '{{index .RepoDigests 0}}' python:3.12-slim
   docker pull postgres:16 && docker inspect --format '{{index .RepoDigests 0}}' postgres:16
   ```
-  Depois troque o `@sha256:...` no `Dockerfile` e no `docker-compose.yml`.
+  Depois troque o `@sha256:...` no `Backend/Dockerfile` e no `docker-compose.yml` da raiz.
 - Antes de cada commit, confira com `git status` que o `.env` não aparece.
 - Prolog: nunca monte queries do `pyswip` concatenando texto do usuário (`shell/1` executa
   comandos); passe os valores como variáveis ou átomos validados.
