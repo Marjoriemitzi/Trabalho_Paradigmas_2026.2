@@ -53,6 +53,7 @@
     "poolclass",
     "postgres",
     "postgresql",
+    "previsivel",
     "psql",
     "pycache",
     "pydantic",
