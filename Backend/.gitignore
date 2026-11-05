@@ -1,0 +1,20 @@
+# Ambientes e caches
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Segredos: qualquer variação de .env, exceto o exemplo
+.env
+.env.*
+!.env.example
+*.pem
+*.key
