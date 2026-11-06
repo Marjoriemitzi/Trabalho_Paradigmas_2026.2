@@ -34,3 +34,13 @@ def test_e_imutavel() -> None:
     email = Email("ana@acme.com")
     with pytest.raises(AttributeError):
         email.value = "outro@acme.com"  # type: ignore[misc]
+
+
+def test_aceita_ate_254_caracteres_e_recusa_o_que_passa_disso() -> None:
+    dominio = "@acme.com"
+    no_limite = "a" * (254 - len(dominio)) + dominio
+    um_a_mais = "a" + no_limite
+
+    assert len(Email(no_limite).value) == 254
+    with pytest.raises(InvalidEmailError):
+        Email(um_a_mais)
