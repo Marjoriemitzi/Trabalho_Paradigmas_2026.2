@@ -48,7 +48,7 @@ class RegisterUserInteractor(RegisterUserInputPort):
             self.presenter.present_weak_password(error.reasons)
             return
 
-        password_hash = self.hasher.hash(RawPassword(data.password))
+        password_hash = await self.hasher.hash(RawPassword(data.password))
 
         async with self.uow:
             if await self.uow.users.exists(email):

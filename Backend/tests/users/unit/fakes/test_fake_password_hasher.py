@@ -5,9 +5,9 @@ from app.users.domain.value_objects.password import PasswordHash, RawPassword
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
 
 
-def test_gera_um_hash_previsivel() -> None:
+async def test_gera_um_hash_previsivel() -> None:
     hasher = FakePasswordHasher()
-    assert hasher.hash(RawPassword("S3nha!Forte123")) == PasswordHash(
+    assert await hasher.hash(RawPassword("S3nha!Forte123")) == PasswordHash(
         "hash-falso:S3nha!Forte123"
     )
 
