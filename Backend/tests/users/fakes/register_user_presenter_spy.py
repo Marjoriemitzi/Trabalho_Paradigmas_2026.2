@@ -1,8 +1,3 @@
-"""
-Spy da porta de saída do cadastro:
-    Só anota o que o interactor apresentou.
-"""
-
 from app.users.application.dtos.register_user import RegisteredUser
 
 

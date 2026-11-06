@@ -1,5 +1,3 @@
-"""Email: value object imutável que só existe se for válido."""
-
 import re
 from dataclasses import dataclass
 

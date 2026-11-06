@@ -1,8 +1,3 @@
-"""
-UserId:
-    A identidade de um usuário, baseada em UUID.
-"""
-
 import uuid
 from dataclasses import dataclass
 from typing import Self

@@ -1,5 +1,3 @@
-"""Testes dos dados de entrada e saída do cadastro."""
-
 from app.users.application.dtos.register_user import RegisterUserInput
 
 

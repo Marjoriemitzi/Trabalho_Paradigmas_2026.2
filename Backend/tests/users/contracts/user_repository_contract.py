@@ -1,7 +1,3 @@
-"""
-Contrato da porta UserRepository.
-"""
-
 import pytest
 
 from app.users.domain.entities.user import User

@@ -1,5 +1,3 @@
-"""Testes do formato do pedido de cadastro."""
-
 from app.users.presentation.api.v1.schemas.register_user import RegisterUserRequest
 
 

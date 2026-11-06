@@ -1,5 +1,3 @@
-"""Testes do presenter HTTP do cadastro: cada resultado vira um status e um corpo."""
-
 import json
 
 import pytest

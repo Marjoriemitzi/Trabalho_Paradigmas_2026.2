@@ -1,8 +1,3 @@
-"""
-Role:
-    O papel do usuário no sistema.
-"""
-
 from enum import StrEnum
 
 

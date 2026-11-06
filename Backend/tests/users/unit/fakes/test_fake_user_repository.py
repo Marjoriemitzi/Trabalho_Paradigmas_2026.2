@@ -1,7 +1,3 @@
-"""
-Roda o contrato do UserRepository contra o fake em memória.
-"""
-
 import pytest
 
 from app.users.domain.repositories.user_repository import UserRepository

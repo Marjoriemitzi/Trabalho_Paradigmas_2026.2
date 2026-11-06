@@ -14,10 +14,7 @@ PL_thread_destroy_engine.restype = c_int
 _LOCK = Lock()
 
 
-class PrologThreadError(RuntimeError):
-    """
-    A thread atual não conseguiu se registrar no motor do SWI-Prolog.
-    """
+class PrologThreadError(RuntimeError): ...
 
 
 @contextmanager

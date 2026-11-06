@@ -1,8 +1,3 @@
-"""
-Entidade User:
-    Um usuário cadastrado, com identidade própria.
-"""
-
 from dataclasses import dataclass
 from typing import Self
 
@@ -21,7 +16,6 @@ class User:
 
     @classmethod
     def register(cls, email: Email, password_hash: PasswordHash) -> Self:
-        """Cadastra um usuário novo, com uma identidade nova."""
         return cls(id=UserId.new(), email=email, password_hash=password_hash)
 
     def __eq__(self, other: object) -> bool:

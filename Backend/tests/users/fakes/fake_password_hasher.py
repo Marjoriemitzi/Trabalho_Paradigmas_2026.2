@@ -1,7 +1,3 @@
-"""
-Fake da porta PasswordHasher.
-"""
-
 from app.users.domain.value_objects.password import PasswordHash, RawPassword
 
 

@@ -1,8 +1,3 @@
-"""
-Porta de Unit of Work:
-    Agrupa as escritas de um caso de uso numa transação.
-"""
-
 from types import TracebackType
 from typing import Protocol, Self
 

@@ -1,5 +1,3 @@
-"""Testes do fake da porta PasswordHasher."""
-
 from app.users.application.ports.password_hasher import PasswordHasher
 from app.users.domain.value_objects.password import PasswordHash, RawPassword
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher

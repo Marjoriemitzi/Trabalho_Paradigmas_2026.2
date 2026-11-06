@@ -1,8 +1,3 @@
-"""
-Caso de uso:
-    Cadastrar um usuário.
-"""
-
 from dataclasses import dataclass
 from typing import Protocol
 

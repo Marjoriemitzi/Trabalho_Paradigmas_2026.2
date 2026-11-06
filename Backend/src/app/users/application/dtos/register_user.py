@@ -1,7 +1,3 @@
-"""
-Dados que entram e saem do caso de uso de cadastro.
-"""
-
 from dataclasses import dataclass, field
 from typing import Self
 

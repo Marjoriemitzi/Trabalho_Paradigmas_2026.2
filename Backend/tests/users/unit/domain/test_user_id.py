@@ -1,5 +1,3 @@
-"""Testes do value object UserId."""
-
 import uuid
 
 from app.users.domain.value_objects.user_id import UserId

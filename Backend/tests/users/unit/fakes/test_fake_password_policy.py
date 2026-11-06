@@ -1,5 +1,3 @@
-"""Testes do fake da porta PasswordPolicy."""
-
 import pytest
 
 from app.users.domain.exceptions import WeakPasswordError

@@ -1,7 +1,3 @@
-"""
-Fake da porta PasswordPolicy.
-"""
-
 from app.users.domain.exceptions import WeakPasswordError
 
 

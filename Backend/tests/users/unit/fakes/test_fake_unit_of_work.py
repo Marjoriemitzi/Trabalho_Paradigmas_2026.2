@@ -1,5 +1,3 @@
-"""Testes do fake da porta UnitOfWork."""
-
 import pytest
 
 from app.users.application.ports.unit_of_work import UnitOfWork
