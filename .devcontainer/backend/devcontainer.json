@@ -2,7 +2,7 @@
   "name": "finance-manager (backend)",
   "dockerComposeFile": ["../../docker-compose.yml", "docker-compose.devcontainer.yml"],
   "service": "dev",
-  "runServices": ["dev", "app", "db"],
+  "runServices": ["dev", "app", "db", "db-test"],
   "workspaceFolder": "/app",
   "remoteUser": "app",
   "containerUser": "app",

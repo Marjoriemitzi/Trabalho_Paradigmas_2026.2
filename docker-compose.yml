@@ -49,9 +49,14 @@ services:
       - ./Backend/alembic.ini:/app/alembic.ini:ro
     ports:
       - "127.0.0.1:8000:8000"
-    environment: *app-env
+    environment:
+      <<: *app-env
+      # O pytest troca DATABASE_URL por esta: os testes nunca tocam no banco "db".
+      TEST_DATABASE_URL: postgresql+asyncpg://${APP_DB_USER}:${APP_DB_PASSWORD}@db-test:5432/${POSTGRES_DB}_test
     depends_on:
       db:
+        condition: service_healthy
+      db-test:
         condition: service_healthy
 
   # Comandos que precisam GRAVAR arquivos do projeto: formatar código, gerar migrations e
@@ -106,6 +111,38 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Cria o usuário da aplicação na primeira inicialização do volume.
+      - ./Backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Banco só dos testes. Os dados ficam na memória (tmpfs) e somem quando o container
+  # para, então nada aqui afeta o banco "db". Sem porta publicada: só a rede interna o vê.
+  db-test:
+    <<: *hardening
+    image: postgres:16@sha256:1beaa3084eee2676f20a9cd9928f0bf2c5bf674f8e49f81017912183d377c61c
+    # Sem fsync: os dados são descartáveis, e os testes ficam mais rápidos.
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env}_test
+      APP_DB_USER: ${APP_DB_USER:?defina APP_DB_USER no .env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
+      POSTGRES_INITDB_ARGS: --auth-local=scram-sha-256 --auth-host=scram-sha-256
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
       - ./Backend/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]

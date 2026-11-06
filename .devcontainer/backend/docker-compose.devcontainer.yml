@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:?defina APP_DB_USER no .env}:${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}@db:5432/${POSTGRES_DB:?defina POSTGRES_DB no .env}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       ENABLE_DOCS: ${ENABLE_DOCS:-false}
+      TEST_DATABASE_URL: postgresql+asyncpg://${APP_DB_USER}:${APP_DB_PASSWORD}@db-test:5432/${POSTGRES_DB}_test
     volumes:
       - ./Backend:/app
       - ./Backend/Dockerfile:/app/Dockerfile:ro
@@ -37,4 +38,6 @@ services:
       - ./Backend/.dockerignore:/app/.dockerignore:ro
     depends_on:
       db:
+        condition: service_healthy
+      db-test:
         condition: service_healthy
