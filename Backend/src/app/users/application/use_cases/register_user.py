@@ -10,7 +10,11 @@ from app.users.application.dtos.register_user import RegisteredUser, RegisterUse
 from app.users.application.ports.password_hasher import PasswordHasher
 from app.users.application.ports.unit_of_work import UnitOfWork
 from app.users.domain.entities.user import User
-from app.users.domain.exceptions import InvalidEmailError, WeakPasswordError
+from app.users.domain.exceptions import (
+    EmailAlreadyRegisteredError,
+    InvalidEmailError,
+    WeakPasswordError,
+)
 from app.users.domain.services.password_policy import PasswordPolicy
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import RawPassword
@@ -50,12 +54,16 @@ class RegisterUserInteractor(RegisterUserInputPort):
 
         password_hash = await self.hasher.hash(RawPassword(data.password))
 
-        async with self.uow:
-            if await self.uow.users.exists(email):
-                self.presenter.present_email_taken(email.value)
-                return
-            user = User.register(email, password_hash)
-            await self.uow.users.add(user)
-            await self.uow.commit()
+        try:
+            async with self.uow:
+                if await self.uow.users.exists(email):
+                    self.presenter.present_email_taken(email.value)
+                    return
+                user = User.register(email, password_hash)
+                await self.uow.users.add(user)
+                await self.uow.commit()
+        except EmailAlreadyRegisteredError:
+            self.presenter.present_email_taken(email.value)
+            return
 
         self.presenter.present_registered(RegisteredUser.from_user(user))

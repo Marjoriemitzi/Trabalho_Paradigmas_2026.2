@@ -1,16 +1,13 @@
-"""
-Testes do caso de uso de cadastro, só com fakes.
-Sem banco, sem Argon2 e sem Prolog: só a lógica do caso de uso.
-"""
-
 from app.users.application.dtos.register_user import RegisterUserInput
 from app.users.application.use_cases.register_user import RegisterUserInteractor
 from app.users.domain.entities.user import User
+from app.users.domain.exceptions import EmailAlreadyRegisteredError
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
 from tests.users.fakes.fake_password_policy import FakePasswordPolicy
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.users.fakes.fake_user_repository import FakeUserRepository
 from tests.users.fakes.register_user_presenter_spy import RegisterUserPresenterSpy
 
 SENHA = "S3nha!Forte123"
@@ -90,3 +87,23 @@ async def test_email_invalido_e_recusado() -> None:
 
     assert presenter.invalid_email == "nao-e-email"
     assert presenter.registered is None
+
+
+class RepositorioQuePerdeACorrida(FakeUserRepository):
+    async def exists(self, email: Email) -> bool:
+        return False
+
+    async def add(self, user: User) -> None:
+        raise EmailAlreadyRegisteredError(user.email.value)
+
+
+async def test_cadastro_simultaneo_do_mesmo_email_e_recusado_e_desfeito() -> None:
+    uow = FakeUnitOfWork(users=RepositorioQuePerdeACorrida())
+    interactor, _, presenter = montar(uow=uow)
+
+    await interactor.execute(RegisterUserInput(email="ana@acme.com", password=SENHA))
+
+    assert presenter.email_taken == "ana@acme.com"
+    assert presenter.registered is None
+    assert uow.rolled_back is True
+    assert uow.committed is False
