@@ -1,6 +1,5 @@
-"""Fake em memória da porta UserRepository."""
-
 from app.users.domain.entities.user import User
+from app.users.domain.exceptions import EmailAlreadyRegisteredError
 from app.users.domain.value_objects.email import Email
 
 
@@ -9,6 +8,8 @@ class FakeUserRepository:
         self._by_email: dict[Email, User] = {}
 
     async def add(self, user: User) -> None:
+        if user.email in self._by_email:
+            raise EmailAlreadyRegisteredError(user.email.value)
         self._by_email[user.email] = user
 
     async def exists(self, email: Email) -> bool:

@@ -53,6 +53,7 @@
     "noreplication",
     "nosuperuser",
     "notset",
+    "nullable",
     "openapi",
     "openssl",
     "owasp",
@@ -76,6 +77,7 @@
     "redoc",
     "relogio",
     "repr",
+    "sessionmaker",
     "setenv",
     "setgid",
     "setuid",
@@ -86,11 +88,13 @@
     "tmpfs",
     "toplevel",
     "tzdata",
+    "UNICO",
     "Unraisable",
     "usermod",
     "usuario",
     "uvicorn",
     "venv",
+    "violacao",
     "virtualenvs"
   ]
 }

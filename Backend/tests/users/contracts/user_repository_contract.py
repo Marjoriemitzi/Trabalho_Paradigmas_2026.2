@@ -5,6 +5,7 @@ Contrato da porta UserRepository.
 import pytest
 
 from app.users.domain.entities.user import User
+from app.users.domain.exceptions import EmailAlreadyRegisteredError
 from app.users.domain.repositories.user_repository import UserRepository
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
@@ -34,3 +35,12 @@ class UserRepositoryContract:
     ) -> None:
         await repository.add(User.register(Email("ana@acme.com"), PasswordHash(HASH)))
         assert await repository.exists(Email("  ANA@Acme.com ")) is True
+
+    async def test_adicionar_email_repetido_e_recusado(
+        self, repository: UserRepository
+    ) -> None:
+        await repository.add(User.register(Email("ana@acme.com"), PasswordHash(HASH)))
+        with pytest.raises(EmailAlreadyRegisteredError):
+            await repository.add(
+                User.register(Email("ana@acme.com"), PasswordHash(HASH))
+            )
