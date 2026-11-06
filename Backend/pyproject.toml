@@ -20,6 +20,7 @@ alembic = "^1.13"
 asyncpg = "^0.31"
 pyswip = "^0.3"
 argon2-cffi = "^23.1"
+pyjwt = "^2.15.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.3"
