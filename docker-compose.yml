@@ -20,6 +20,8 @@ x-app-env: &app-env
   DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:?defina APP_DB_USER no .env}:${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}@db:5432/${POSTGRES_DB:?defina POSTGRES_DB no .env}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   ENABLE_DOCS: ${ENABLE_DOCS:-false}
+  JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+  JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-30}
   # Sistema de arquivos é só leitura: caches vão para /tmp.
   COVERAGE_FILE: /tmp/.coverage
   PYTEST_ADDOPTS: -p no:cacheprovider

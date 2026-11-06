@@ -12,6 +12,7 @@ def configuracao(*, enable_docs: bool) -> Settings:
     return Settings(
         database_url=SecretStr("postgresql+asyncpg://u:s@localhost/finance"),
         prolog_rules_dir=Path("rules"),
+        jwt_secret=SecretStr("s" * 32),
         enable_docs=enable_docs,
     )
 
