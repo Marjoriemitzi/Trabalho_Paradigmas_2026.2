@@ -40,3 +40,22 @@ class UserRepositoryContract:
             await repository.add(
                 User.register(Email("ana@acme.com"), PasswordHash(HASH))
             )
+
+    async def test_get_by_email_de_quem_nao_existe_devolve_none(
+        self, repository: UserRepository
+    ) -> None:
+        assert await repository.get_by_email(Email("ninguem@acme.com")) is None
+
+    async def test_get_by_email_devolve_o_usuario_com_todos_os_dados(
+        self, repository: UserRepository
+    ) -> None:
+        cadastrado = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        await repository.add(cadastrado)
+
+        encontrado = await repository.get_by_email(Email("  ANA@Acme.com "))
+
+        assert encontrado is not None
+        assert encontrado.id == cadastrado.id
+        assert encontrado.email == cadastrado.email
+        assert encontrado.password_hash == cadastrado.password_hash
+        assert encontrado.role is cadastrado.role
