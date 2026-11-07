@@ -4,6 +4,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.users.application.use_cases.authenticate_user import (
     AuthenticateUserInputPort,
     AuthenticateUserInteractor,
@@ -38,7 +39,9 @@ async def client() -> AsyncIterator[AsyncClient]:
         )
 
     app = FastAPI()
+    install_error_handlers(app)
     app.include_router(router)
+
     app.state.authenticate_user = build_interactor
 
     transport = ASGITransport(app=app)
@@ -77,6 +80,10 @@ async def test_campo_a_mais_no_pedido_e_recusado(client: AsyncClient) -> None:
     )
 
     assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_request",
+        "fields": [{"field": "remember", "problem": "extra_forbidden"}],
+    }
 
 
 def test_a_documentacao_mostra_o_401() -> None:

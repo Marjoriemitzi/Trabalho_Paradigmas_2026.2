@@ -4,6 +4,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.users.application.use_cases.register_user import (
     RegisterUserInputPort,
     RegisterUserInteractor,
@@ -29,7 +30,9 @@ async def client() -> AsyncIterator[AsyncClient]:
         )
 
     app = FastAPI()
+    install_error_handlers(app)
     app.include_router(router)
+
     app.state.register_user = build_interactor
 
     transport = ASGITransport(app=app)
@@ -78,6 +81,10 @@ async def test_corpo_sem_campo_obrigatorio_responde_422(client: AsyncClient) -> 
     resposta = await client.post(URL, json={"email": "ana@acme.com"})
 
     assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_request",
+        "fields": [{"field": "password", "problem": "missing"}],
+    }
 
 
 async def test_campo_a_mais_no_pedido_e_recusado(client: AsyncClient) -> None:
@@ -86,6 +93,11 @@ async def test_campo_a_mais_no_pedido_e_recusado(client: AsyncClient) -> None:
     )
 
     assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_request",
+        "fields": [{"field": "role", "problem": "extra_forbidden"}],
+    }
+    assert SENHA not in resposta.text
 
 
 def test_a_documentacao_mostra_todos_os_resultados() -> None:
