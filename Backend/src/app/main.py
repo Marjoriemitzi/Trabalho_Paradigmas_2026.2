@@ -7,12 +7,17 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
-from app.users.composition import authenticate_user_factory, register_user_factory
+from app.users.composition import (
+    authenticate_user_factory,
+    get_current_user_factory,
+    register_user_factory,
+)
 from app.users.infrastructure.prolog.prolog_password_policy import (
     PrologPasswordPolicy,
 )
 from app.users.infrastructure.security.argon2_hasher import Argon2Hasher
 from app.users.infrastructure.security.jwt_token_issuer import JwtTokenIssuer
+from app.users.infrastructure.security.jwt_token_verifier import JwtTokenVerifier
 from app.users.presentation.api.v1.routers import auth, users
 
 
@@ -34,14 +39,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             hasher=hasher,
             policy=PrologPasswordPolicy(prolog, settings.prolog_rules_dir),
         )
+
+        jwt_secret = settings.jwt_secret.get_secret_value()
+
         app.state.authenticate_user = authenticate_user_factory(
             session_factory=session_factory,
             hasher=hasher,
             tokens=JwtTokenIssuer(
-                secret=settings.jwt_secret.get_secret_value(),
+                secret=jwt_secret,
                 expires_in=timedelta(minutes=settings.jwt_expires_minutes),
             ),
         )
+
+        app.state.token_verifier = JwtTokenVerifier(secret=jwt_secret)
+        app.state.get_current_user = get_current_user_factory(session_factory)
+
         yield
         await engine.dispose()
 

@@ -7,6 +7,11 @@ from app.users.application.use_cases.authenticate_user import (
     AuthenticateUserInteractor,
     AuthenticateUserOutputPort,
 )
+from app.users.application.use_cases.get_current_user import (
+    GetCurrentUserInputPort,
+    GetCurrentUserInteractor,
+    GetCurrentUserOutputPort,
+)
 from app.users.application.use_cases.register_user import (
     RegisterUserInputPort,
     RegisterUserInteractor,
@@ -16,6 +21,9 @@ from app.users.domain.services.password_policy import PasswordPolicy
 from app.users.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from app.users.presentation.api.v1.controllers.authenticate_user_controller import (
     AuthenticateUserFactory,
+)
+from app.users.presentation.api.v1.controllers.get_current_user_controller import (
+    GetCurrentUserFactory,
 )
 from app.users.presentation.api.v1.controllers.register_user_controller import (
     RegisterUserFactory,
@@ -49,6 +57,17 @@ def authenticate_user_factory(
             hasher=hasher,
             tokens=tokens,
             presenter=presenter,
+        )
+
+    return build
+
+
+def get_current_user_factory(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> GetCurrentUserFactory:
+    def build(presenter: GetCurrentUserOutputPort) -> GetCurrentUserInputPort:
+        return GetCurrentUserInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
         )
 
     return build
