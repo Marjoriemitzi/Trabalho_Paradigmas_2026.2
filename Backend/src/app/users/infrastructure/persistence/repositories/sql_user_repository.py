@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.users.domain.entities.user import User
 from app.users.domain.exceptions import EmailAlreadyRegisteredError
 from app.users.domain.value_objects.email import Email
+from app.users.domain.value_objects.user_id import UserId
 from app.users.infrastructure.persistence.mappers.user_mapper import (
     to_entity,
     to_model,
@@ -34,4 +35,8 @@ class SqlUserRepository:
     async def get_by_email(self, email: Email) -> User | None:
         consulta = select(UserModel).where(UserModel.email == email.value)
         modelo = await self._session.scalar(consulta)
+        return None if modelo is None else to_entity(modelo)
+
+    async def get_by_id(self, user_id: UserId) -> User | None:
+        modelo = await self._session.get(UserModel, user_id.value)
         return None if modelo is None else to_entity(modelo)

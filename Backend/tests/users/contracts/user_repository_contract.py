@@ -5,6 +5,7 @@ from app.users.domain.exceptions import EmailAlreadyRegisteredError
 from app.users.domain.repositories.user_repository import UserRepository
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
+from app.users.domain.value_objects.user_id import UserId
 
 HASH = "$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"
 
@@ -59,3 +60,35 @@ class UserRepositoryContract:
         assert encontrado.email == cadastrado.email
         assert encontrado.password_hash == cadastrado.password_hash
         assert encontrado.role is cadastrado.role
+
+    async def test_get_by_id_de_quem_nao_existe_devolve_none(
+        self, repository: UserRepository
+    ) -> None:
+        assert await repository.get_by_id(UserId.new()) is None
+
+    async def test_get_by_id_devolve_o_usuario_com_todos_os_dados(
+        self, repository: UserRepository
+    ) -> None:
+        cadastrado = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        await repository.add(cadastrado)
+
+        encontrado = await repository.get_by_id(cadastrado.id)
+
+        assert encontrado is not None
+        assert encontrado.id == cadastrado.id
+        assert encontrado.email == cadastrado.email
+        assert encontrado.password_hash == cadastrado.password_hash
+        assert encontrado.role is cadastrado.role
+
+    async def test_get_by_id_encontra_o_usuario_certo_entre_varios(
+        self, repository: UserRepository
+    ) -> None:
+        ana = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        bia = User.register(Email("bia@acme.com"), PasswordHash(HASH))
+        await repository.add(ana)
+        await repository.add(bia)
+
+        encontrado = await repository.get_by_id(bia.id)
+
+        assert encontrado is not None
+        assert encontrado.email == bia.email
