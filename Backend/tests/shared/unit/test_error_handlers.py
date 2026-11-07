@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import BaseModel, ConfigDict, SecretStr
 
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.shared.presentation.api.errors import ApiError
@@ -14,6 +15,18 @@ install_error_handlers(app)
 @app.get("/protegida")
 async def protegida() -> None:
     raise ApiError(401, "invalid_token", headers={"WWW-Authenticate": "Bearer"})
+
+
+class Pedido(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str
+    password: SecretStr
+
+
+@app.post("/pedido")
+async def pedido(body: Pedido) -> None:
+    return None
 
 
 @pytest.fixture
@@ -55,3 +68,45 @@ async def test_sem_os_tratadores_o_status_continua_certo() -> None:
         resposta = await client.get("/protegida")
 
     assert resposta.status_code == 401
+
+
+async def test_pedido_invalido_diz_o_problema_de_cada_campo(
+    client: AsyncClient,
+) -> None:
+    resposta = await client.post(
+        "/pedido", json={"email": "ana@acme.com", "senha": "S3nha!Forte123"}
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_request",
+        "fields": [
+            {"field": "password", "problem": "missing"},
+            {"field": "senha", "problem": "extra_forbidden"},
+        ],
+    }
+
+
+async def test_json_quebrado_nao_aponta_campo_nenhum(client: AsyncClient) -> None:
+    resposta = await client.post(
+        "/pedido", content='{"email":', headers={"Content-Type": "application/json"}
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_request",
+        "fields": [{"field": None, "problem": "json_invalid"}],
+    }
+
+
+async def test_corpo_que_nao_e_objeto_nao_aponta_campo_nenhum(
+    client: AsyncClient,
+) -> None:
+    resposta = await client.post("/pedido", json=["ana@acme.com", "S3nha!Forte123"])
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_request",
+        "fields": [{"field": None, "problem": "model_attributes_type"}],
+    }
+    assert "S3nha" not in resposta.text
