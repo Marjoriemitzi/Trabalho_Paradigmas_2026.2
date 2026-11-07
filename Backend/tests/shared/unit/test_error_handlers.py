@@ -29,6 +29,11 @@ async def pedido(body: Pedido) -> None:
     return None
 
 
+@app.get("/quebrada")
+async def quebrada() -> None:
+    raise RuntimeError("detalhe interno: senha do banco é xyz")
+
+
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
@@ -110,3 +115,13 @@ async def test_corpo_que_nao_e_objeto_nao_aponta_campo_nenhum(
         "fields": [{"field": None, "problem": "model_attributes_type"}],
     }
     assert "S3nha" not in resposta.text
+
+
+async def test_erro_inesperado_vira_500_sem_mostrar_o_detalhe() -> None:
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://teste") as client:
+        resposta = await client.get("/quebrada")
+
+    assert resposta.status_code == 500
+    assert resposta.json() == {"error": "internal_error"}
+    assert "senha do banco" not in resposta.text

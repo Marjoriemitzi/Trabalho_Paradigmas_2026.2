@@ -40,3 +40,7 @@ def install_error_handlers(app: FastAPI) -> None:
             "invalid_request",
             fields=[_field_problem(erro) for erro in exc.errors()],
         )
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+        return error_response(status.HTTP_500_INTERNAL_SERVER_ERROR, "internal_error")
