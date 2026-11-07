@@ -1,6 +1,7 @@
 from fastapi import status
 from fastapi.responses import JSONResponse
 
+from app.shared.presentation.api.errors import error_response
 from app.users.application.ports.token_issuer import AccessToken
 from app.users.application.use_cases.authenticate_user import (
     AuthenticateUserOutputPort,
@@ -28,8 +29,9 @@ class AuthenticateUserHttpPresenter(AuthenticateUserOutputPort):
         )
 
     def present_invalid_credentials(self) -> None:
-        self._response = JSONResponse(
-            {"error": "invalid_credentials"},
-            status_code=status.HTTP_401_UNAUTHORIZED,
+        self._response = error_response(
+            status.HTTP_401_UNAUTHORIZED,
+            "invalid_credentials",
+            # Todo 401 precisa dizer como se autenticar (RFC 9110, seção 15.5.2).
             headers={"WWW-Authenticate": "Bearer"},
         )
