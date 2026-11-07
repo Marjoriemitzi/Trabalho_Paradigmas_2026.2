@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.shared.presentation.api.errors import ApiError
 from app.users.application.ports.token_verifier import AuthenticatedUser, TokenVerifier
 
 _bearer = HTTPBearer(
@@ -10,18 +11,18 @@ _bearer = HTTPBearer(
 )
 
 
-def not_authenticated() -> HTTPException:
-    return HTTPException(
+def not_authenticated() -> ApiError:
+    return ApiError(
         status.HTTP_401_UNAUTHORIZED,
-        detail="not_authenticated",
+        "not_authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
 
-def invalid_token() -> HTTPException:
-    return HTTPException(
+def invalid_token() -> ApiError:
+    return ApiError(
         status.HTTP_401_UNAUTHORIZED,
-        detail="invalid_token",
+        "invalid_token",
         headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
     )
 

@@ -1,8 +1,8 @@
 import json
 
 import pytest
-from fastapi import HTTPException
 
+from app.shared.presentation.api.errors import ApiError
 from app.users.application.dtos.get_current_user import UserProfile
 from app.users.presentation.api.v1.presenters.get_current_user_presenter import (
     GetCurrentUserHttpPresenter,
@@ -30,11 +30,11 @@ def test_usuario_encontrado_vira_200_com_os_dados() -> None:
 def test_usuario_que_nao_existe_mais_e_um_token_invalido() -> None:
     presenter = GetCurrentUserHttpPresenter()
 
-    with pytest.raises(HTTPException) as erro:
+    with pytest.raises(ApiError) as erro:
         presenter.present_user_not_found()
 
     assert erro.value.status_code == 401
-    assert erro.value.detail == "invalid_token"
+    assert erro.value.code == "invalid_token"
     assert erro.value.headers == {"WWW-Authenticate": 'Bearer error="invalid_token"'}
 
 

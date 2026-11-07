@@ -4,6 +4,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.users.application.use_cases.get_current_user import (
     GetCurrentUserInputPort,
     GetCurrentUserInteractor,
@@ -37,6 +38,7 @@ async def client() -> AsyncIterator[AsyncClient]:
         return GetCurrentUserInteractor(uow=uow, presenter=presenter)
 
     app = FastAPI()
+    install_error_handlers(app)
     app.include_router(router)
     app.state.get_current_user = build_interactor
     app.state.token_verifier = FakeTokenVerifier()
@@ -61,7 +63,7 @@ async def test_sem_token_responde_401(client: AsyncClient) -> None:
     resposta = await client.get(URL)
 
     assert resposta.status_code == 401
-    assert resposta.json() == {"detail": "not_authenticated"}
+    assert resposta.json() == {"error": "not_authenticated"}
     assert resposta.headers["www-authenticate"] == "Bearer"
 
 
@@ -69,7 +71,7 @@ async def test_token_invalido_responde_401(client: AsyncClient) -> None:
     resposta = await client.get(URL, headers={"Authorization": "Bearer abc.def.ghi"})
 
     assert resposta.status_code == 401
-    assert resposta.json() == {"detail": "invalid_token"}
+    assert resposta.json() == {"error": "invalid_token"}
     assert resposta.headers["www-authenticate"] == 'Bearer error="invalid_token"'
 
 
@@ -79,7 +81,7 @@ async def test_outro_esquema_de_autenticacao_conta_como_sem_token(
     resposta = await client.get(URL, headers={"Authorization": "Basic YW5hOnNlbmhh"})
 
     assert resposta.status_code == 401
-    assert resposta.json() == {"detail": "not_authenticated"}
+    assert resposta.json() == {"error": "not_authenticated"}
 
 
 async def test_token_de_conta_que_nao_existe_mais_responde_401(
@@ -90,7 +92,7 @@ async def test_token_de_conta_que_nao_existe_mais_responde_401(
     resposta = await client.get(URL, headers=bearer(sumiu))
 
     assert resposta.status_code == 401
-    assert resposta.json() == {"detail": "invalid_token"}
+    assert resposta.json() == {"error": "invalid_token"}
     assert resposta.headers["www-authenticate"] == 'Bearer error="invalid_token"'
 
 
