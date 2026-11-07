@@ -33,3 +33,12 @@ def test_documentacao_desligada_por_padrao(path: str) -> None:
 def test_documentacao_ligada_quando_pedido() -> None:
     client = TestClient(create_app(configuracao(enable_docs=True)))
     assert client.get("/openapi.json").status_code == 200
+
+
+def test_a_aplicacao_responde_erros_no_formato_unico() -> None:
+    client = TestClient(create_app(configuracao(enable_docs=False)))
+
+    resposta = client.get("/nao-existe")
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"error": "not_found"}

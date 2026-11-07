@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
+from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.users.composition import (
     authenticate_user_factory,
     get_current_user_factory,
@@ -64,6 +65,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url="/redoc" if docs else None,
         openapi_url="/openapi.json" if docs else None,
     )
+
+    install_error_handlers(app)
     app.include_router(users.router)
     app.include_router(auth.router)
 
