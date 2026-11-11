@@ -1,0 +1,24 @@
+from datetime import datetime
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.users.application.ports.token_blocklist_repository import (
+    TokenBlocklistRepository,
+)
+from app.users.infrastructure.persistence.models import TokenBlocklistModel
+
+
+class SQLAlchemyTokenBlocklistRepository(TokenBlocklistRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, token: str, expires_at: datetime) -> None:
+        model = TokenBlocklistModel(token=token, expires_at=expires_at)
+        self._session.add(model)
+        await self._session.commit()
+
+    async def is_blocked(self, token: str) -> bool:
+        stmt = select(TokenBlocklistModel).where(TokenBlocklistModel.token == token)
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none() is not None
