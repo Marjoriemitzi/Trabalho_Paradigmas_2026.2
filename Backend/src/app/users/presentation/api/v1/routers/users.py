@@ -1,12 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
-
-# Import do banco de dados (ajuste se a função get_session tiver outro nome)
-from app.shared.infrastructure.persistence.database import get_session
 
 from app.users.infrastructure.persistence.repositories.sqlalchemy_token_blocklist_repository import (
     SQLAlchemyTokenBlocklistRepository,
@@ -64,14 +60,17 @@ async def register_user(
     },
 )
 async def get_current_user(
+    request: Request,
     current: CurrentUser,
     controller: Annotated[
         GetCurrentUserController, Depends(get_current_user_controller)
     ],
     token: Annotated[str, Depends(oauth2_scheme)],
-    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> JSONResponse:
-    # 1. Verifica se o token foi revogado pelo logout
+    
+    session_factory = request.app.state.session_factory
+    session = session_factory()
+    
     blocklist_repo = SQLAlchemyTokenBlocklistRepository(session)
     is_blocked = await blocklist_repo.is_blocked(token)
     
@@ -81,5 +80,4 @@ async def get_current_user(
             detail="Sessão encerrada. Faça login novamente."
         )
         
-    # 2. Se não estiver bloqueado, prossegue com a resposta normal
     return await controller.handle(current)

@@ -7,9 +7,6 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Import do banco de dados (ajuste se a função get_session tiver outro nome no seu projeto)
-from app.shared.infrastructure.persistence.database import get_session
-
 from app.users.application.use_cases.logout_user_interactor import (
     LogoutUserInteractor,
 )
@@ -30,10 +27,12 @@ from app.users.presentation.api.v1.schemas.authenticate_user import (
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-# Injeção de dependência local para o Logout (pode ser movida para dependencies.py futuramente)
-async def get_logout_interactor(
-    session: AsyncSession = Depends(get_session),
-) -> LogoutUserInteractor:
+
+# O FastAPI injeta o Request automaticamente. Pegamos a sessão direto do state.
+def get_logout_interactor(request) -> LogoutUserInteractor:
+    # Acessa a fábrica de sessão que já foi registrada no main.py pelo composition root
+    session_factory = request.app.state.session_factory
+    session = session_factory()
     repo = SQLAlchemyTokenBlocklistRepository(session)
     return LogoutUserInteractor(repo)
 

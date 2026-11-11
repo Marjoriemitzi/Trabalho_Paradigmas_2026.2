@@ -13,13 +13,10 @@ class LogoutUserInteractor:
 
     async def execute(self, token: str) -> None:
         try:
-            # Decodifica o token sem checar a assinatura apenas para extrair a validade
             payload = jwt.decode(token, options={"verify_signature": False})
             exp_timestamp = payload.get("exp")
-            
             if exp_timestamp:
                 expires_at = datetime.fromtimestamp(exp_timestamp, tz=UTC)
                 await self._blocklist_repo.add(token, expires_at)
         except jwt.DecodeError:
-            # Se não for um JWT válido, falha silenciosamente no logout
             pass

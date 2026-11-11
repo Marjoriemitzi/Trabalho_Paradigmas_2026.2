@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.users.application.ports.token_blocklist_repository import (
     TokenBlocklistRepository,
 )
-from app.users.infrastructure.persistence.models import TokenBlocklistModel
+from app.users.infrastructure.persistence.models.token_blocklist_model import (
+    TokenBlocklistModel,
+)
 
 
 class SQLAlchemyTokenBlocklistRepository(TokenBlocklistRepository):

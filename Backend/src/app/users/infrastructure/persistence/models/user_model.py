@@ -17,3 +17,5 @@ class UserModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+from app.users.infrastructure.persistence.models.token_blocklist_model import TokenBlocklistModel  # noqa: F401
