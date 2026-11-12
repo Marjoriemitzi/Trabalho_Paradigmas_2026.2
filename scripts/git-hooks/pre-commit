@@ -1,19 +1,8 @@
 #!/bin/sh
-# Hook de pre-commit do monorepo. Cada parte só é checada quando o commit mexe nela.
-#   - Backend/: ruff e mypy DENTRO do container da API (somente leitura, sem root,
-#     sem rede exposta). O host só precisa de git e Docker.
-#   - Frontend/: ainda sem checagens (entram quando o projeto Elm for criado).
-#
-# Instalação, a partir da raiz (copie, não crie link: assim uma alteração neste arquivo
-# não passa a rodar no seu computador sem você reinstalar):
-#   cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
-#
-# Observação: verifica os arquivos como estão na pasta (não só o que está no "git add").
 set -eu
 
 cd "$(git rev-parse --show-toplevel)"
 
-# Verdadeiro se o commit tem arquivos alterados em alguma das pastas indicadas.
 changed() {
   ! git diff --cached --quiet -- "$@"
 }
