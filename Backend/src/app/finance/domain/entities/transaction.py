@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Self
 
+from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.money import Money
@@ -14,6 +15,7 @@ from app.finance.domain.value_objects.transaction_kind import TransactionKind
 class Transaction:
     id: TransactionId
     owner: OwnerId
+    account: AccountId
     kind: TransactionKind
     amount: Money
     description: Description
@@ -24,6 +26,7 @@ class Transaction:
     def record(
         cls,
         owner: OwnerId,
+        account: AccountId,
         kind: TransactionKind,
         amount: Money,
         description: Description,
@@ -33,12 +36,29 @@ class Transaction:
         return cls(
             id=TransactionId.new(),
             owner=owner,
+            account=account,
             kind=kind,
             amount=amount,
             description=description,
             category=category,
             occurred_on=occurred_on,
         )
+
+    def revise(
+        self,
+        account: AccountId,
+        kind: TransactionKind,
+        amount: Money,
+        description: Description,
+        category: Category,
+        occurred_on: date,
+    ) -> None:
+        self.account = account
+        self.kind = kind
+        self.amount = amount
+        self.description = description
+        self.category = category
+        self.occurred_on = occurred_on
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Transaction) and other.id == self.id
