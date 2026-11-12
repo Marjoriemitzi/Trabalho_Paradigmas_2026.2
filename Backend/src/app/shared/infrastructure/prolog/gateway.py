@@ -1,59 +1,45 @@
-from collections.abc import Generator
-from contextlib import contextmanager
-from ctypes import c_int
 from pathlib import Path
 from threading import Lock
 
 from pyswip import Functor, Prolog, Query, Variable
-from pyswip.core import PL_thread_attach_engine, PL_thread_self, _lib
-
-PL_thread_destroy_engine = _lib.PL_thread_destroy_engine
-PL_thread_destroy_engine.argtypes = []
-PL_thread_destroy_engine.restype = c_int
+from pyswip.core import PL_thread_attach_engine, PL_thread_self
 
 _LOCK = Lock()
 
 
-class PrologThreadError(RuntimeError): ...
+class PrologThreadError(RuntimeError):
+    pass
 
 
-@contextmanager
-def _engine() -> Generator[None]:
-    with _LOCK:
-        attached = False
-        if PL_thread_self() == -1:
-            if PL_thread_attach_engine(None) == -1:
-                msg = "Não foi possível registrar a thread no SWI-Prolog."
-                raise PrologThreadError(msg)
-            attached = True
-        try:
-            yield
-        finally:
-            if attached:
-                PL_thread_destroy_engine()
+def _attach_current_thread() -> None:
+    if PL_thread_self() == -1 and PL_thread_attach_engine(None) == -1:
+        raise PrologThreadError("Não foi possível registrar a thread no SWI-Prolog.")
 
 
 class PrologGateway:
     def consult(self, path: Path) -> None:
-        with _engine():
+        with _LOCK:
+            _attach_current_thread()
             Prolog().consult(str(path))
 
     def holds(self, predicate: str, *args: str) -> bool:
-        with _engine():
+        with _LOCK:
+            _attach_current_thread()
             Query(Functor(predicate, len(args))(*args))
             try:
-                return bool(Query.nextSolution())  # pyright: ignore[reportAttributeAccessIssue]
+                return bool(Query.nextSolution())
             finally:
-                Query.closeQuery()  # pyright: ignore[reportAttributeAccessIssue]
+                Query.closeQuery()
 
     def values(self, predicate: str, *args: str) -> list[str]:
         found: list[str] = []
-        with _engine():
+        with _LOCK:
+            _attach_current_thread()
             answer = Variable()
             Query(Functor(predicate, len(args) + 1)(*args, answer))
             try:
-                while Query.nextSolution():  # pyright: ignore[reportAttributeAccessIssue]
+                while Query.nextSolution():
                     found.append(str(answer.value))
             finally:
-                Query.closeQuery()  # pyright: ignore[reportAttributeAccessIssue]
+                Query.closeQuery()
         return found
