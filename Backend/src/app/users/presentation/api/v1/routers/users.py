@@ -67,17 +67,15 @@ async def get_current_user(
     ],
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> JSONResponse:
-    
     session_factory = request.app.state.session_factory
-    session = session_factory()
-    
-    blocklist_repo = SQLAlchemyTokenBlocklistRepository(session)
-    is_blocked = await blocklist_repo.is_blocked(token)
-    
+    async with session_factory() as session:
+        blocklist_repo = SQLAlchemyTokenBlocklistRepository(session)
+        is_blocked = await blocklist_repo.is_blocked(token)
+
     if is_blocked:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Sessão encerrada. Faça login novamente."
+            detail="Sessão encerrada. Faça login novamente.",
         )
-        
+
     return await controller.handle(current)

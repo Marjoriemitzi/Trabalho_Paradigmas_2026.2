@@ -1,11 +1,11 @@
 """Rotas de autenticação. Só ligam cada caminho ao seu controller."""
 
+from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.users.application.use_cases.logout_user_interactor import (
     LogoutUserInteractor,
@@ -28,13 +28,13 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-# O FastAPI injeta o Request automaticamente. Pegamos a sessão direto do state.
-def get_logout_interactor(request) -> LogoutUserInteractor:
-    # Acessa a fábrica de sessão que já foi registrada no main.py pelo composition root
+async def get_logout_interactor(
+    request: Request,
+) -> AsyncIterator[LogoutUserInteractor]:
     session_factory = request.app.state.session_factory
-    session = session_factory()
-    repo = SQLAlchemyTokenBlocklistRepository(session)
-    return LogoutUserInteractor(repo)
+    async with session_factory() as session:
+        repo = SQLAlchemyTokenBlocklistRepository(session)
+        yield LogoutUserInteractor(repo)
 
 
 @router.post(

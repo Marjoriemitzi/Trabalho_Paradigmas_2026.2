@@ -53,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
         app.state.token_verifier = JwtTokenVerifier(secret=jwt_secret)
+        app.state.session_factory = session_factory
         app.state.get_current_user = get_current_user_factory(session_factory)
 
         yield
