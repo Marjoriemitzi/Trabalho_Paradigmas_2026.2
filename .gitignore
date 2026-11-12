@@ -1,19 +1,13 @@
-# Regras gerais do monorepo.
-# Cada projeto tem o próprio .gitignore com as regras específicas (ex.: Backend/.gitignore).
-
-# Segredos: qualquer variação de .env, exceto os exemplos
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 
-# Sistema operacional e editores
 .DS_Store
 Thumbs.db
 *.swp
 .idea/
 
-# Frontend (Elm)
 elm-stuff/
 node_modules/
