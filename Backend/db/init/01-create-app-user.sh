@@ -1,7 +1,4 @@
 #!/bin/bash
-# Roda uma única vez, quando o volume do Postgres é criado.
-# Cria um usuário comum (sem superusuário) para a aplicação e o torna dono do banco,
-# para que as migrations funcionem sem dar poderes de administrador à API.
 set -euo pipefail
 
 : "${APP_DB_USER:?APP_DB_USER não definido}"
