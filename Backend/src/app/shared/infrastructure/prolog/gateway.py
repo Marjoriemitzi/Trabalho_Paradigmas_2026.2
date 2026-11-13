@@ -5,6 +5,10 @@ from pyswip import Functor, Prolog, Query, Variable
 from pyswip.core import PL_thread_attach_engine, PL_thread_self
 
 _LOCK = Lock()
+_MIN_INT = -(2**63)
+_MAX_INT = 2**63 - 1
+
+PrologArg = str | int
 
 
 class PrologThreadError(RuntimeError):
@@ -16,13 +20,24 @@ def _attach_current_thread() -> None:
         raise PrologThreadError("Não foi possível registrar a thread no SWI-Prolog.")
 
 
+def _check_args(args: tuple[PrologArg, ...]) -> None:
+    for arg in args:
+        if isinstance(arg, bool) or not isinstance(arg, str | int):
+            raise TypeError(
+                f"Argumento do Prolog deve ser str ou int, não {type(arg).__name__}."
+            )
+        if isinstance(arg, int) and not _MIN_INT <= arg <= _MAX_INT:
+            raise ValueError("Inteiro fora do intervalo de 64 bits.")
+
+
 class PrologGateway:
     def consult(self, path: Path) -> None:
         with _LOCK:
             _attach_current_thread()
             Prolog().consult(str(path))
 
-    def holds(self, predicate: str, *args: str) -> bool:
+    def holds(self, predicate: str, *args: PrologArg) -> bool:
+        _check_args(args)
         with _LOCK:
             _attach_current_thread()
             Query(Functor(predicate, len(args))(*args))
@@ -31,7 +46,8 @@ class PrologGateway:
             finally:
                 Query.closeQuery()
 
-    def values(self, predicate: str, *args: str) -> list[str]:
+    def values(self, predicate: str, *args: PrologArg) -> list[str]:
+        _check_args(args)
         found: list[str] = []
         with _LOCK:
             _attach_current_thread()
