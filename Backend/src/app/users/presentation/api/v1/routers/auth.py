@@ -1,5 +1,3 @@
-"""Rotas de autenticação. Só ligam cada caminho ao seu controller."""
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status

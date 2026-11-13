@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Self
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
@@ -11,7 +10,3 @@ class Settings(BaseSettings):
     enable_docs: bool = False
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_expires_minutes: int = Field(default=30, gt=0)
-
-    @classmethod
-    def from_env(cls) -> Self:
-        return cls()  # pyright: ignore[reportCallIssue]

@@ -12,11 +12,6 @@ def test_normaliza_para_minusculas_sem_espacos() -> None:
     assert Email("  Ana@ACME.com ").value == "ana@acme.com"
 
 
-def test_recusa_email_sem_arroba() -> None:
-    with pytest.raises(InvalidEmailError):
-        Email("ana.acme.com")
-
-
 @pytest.mark.parametrize(
     "invalido",
     ["", "ana.acme.com", "ana@", "@acme.com", "ana@acme", "ana acme@x.com"],

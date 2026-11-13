@@ -41,7 +41,6 @@ async def client() -> AsyncIterator[AsyncClient]:
     app = FastAPI()
     install_error_handlers(app)
     app.include_router(router)
-
     app.state.authenticate_user = build_interactor
 
     transport = ASGITransport(app=app)
