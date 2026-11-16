@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser
 import Html exposing (Html, button, div, form, h1, input, label, p, text)
@@ -7,6 +7,18 @@ import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+
+
+port saveToken : String -> Cmd msg
+
+
+port clearToken : () -> Cmd msg
+
+
+type alias User =
+    { id : String
+    , email : String
+    }
 
 
 type alias Model =
@@ -18,6 +30,7 @@ type alias Model =
     , error : String
     , notice : String
     , token : Maybe String
+    , user : Maybe User
     }
 
 
@@ -29,6 +42,7 @@ type Msg
     | Submit
     | ReceiveLogin (Result Http.Error String)
     | ReceiveRegistration (Result Http.Error ())
+    | ReceiveUser (Result Http.Error User)
     | Logout
 
 
@@ -42,16 +56,51 @@ initialModel =
     , error = ""
     , notice = ""
     , token = Nothing
+    , user = Nothing
     }
 
 
-main : Program () Model Msg
+main : Program (Maybe String) Model Msg
 main =
     Browser.element
-        { init = \_ -> ( initialModel, Cmd.none )
+        { init = init
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
+        }
+
+
+init : Maybe String -> ( Model, Cmd Msg )
+init savedToken =
+    case savedToken of
+        Just token ->
+            ( { initialModel
+                | token = Just token
+                , loading = True
+              }
+            , getCurrentUser token
+            )
+
+        Nothing ->
+            ( initialModel, Cmd.none )
+
+
+getCurrentUser : String -> Cmd Msg
+getCurrentUser token =
+    Http.request
+        { method = "GET"
+        , headers =
+            [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/v1/users/me"
+        , body = Http.emptyBody
+        , expect =
+            Http.expectJson ReceiveUser
+                (Decode.map2 User
+                    (Decode.field "id" Decode.string)
+                    (Decode.field "email" Decode.string)
+                )
+        , timeout = Just 15000
+        , tracker = Nothing
         }
 
 
@@ -100,9 +149,8 @@ update msg model =
                     ( { model
                         | token = Just token
                         , password = ""
-                        , loading = False
                       }
-                    , Cmd.none
+                    , getCurrentUser token
                     )
 
                 Err error ->
@@ -131,8 +179,37 @@ update msg model =
                     , Cmd.none
                     )
 
+        ReceiveUser result ->
+            case result of
+                Ok user ->
+                    ( { model
+                        | user = Just user
+                        , loading = False
+                      }
+                    , case model.token of
+                        Just token ->
+                            saveToken token
+
+                        Nothing ->
+                            Cmd.none
+                    )
+
+                Err error ->
+                    ( { initialModel
+                        | email = model.email
+                        , error =
+                            case error of
+                                Http.BadStatus 401 ->
+                                    "Sua sessão expirou ou não é válida. Entre novamente."
+
+                                _ ->
+                                    "Não foi possível consultar sua conta. Tente entrar novamente."
+                      }
+                    , clearToken ()
+                    )
+
         Logout ->
-            ( initialModel, Cmd.none )
+            ( initialModel, clearToken () )
 
 
 submitCredentials : Model -> Cmd Msg
@@ -195,10 +272,11 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Finanças pessoais" ]
-        , case model.token of
-            Just _ ->
+        , case model.user of
+            Just user ->
                 div []
-                    [ p [] [ text "Login realizado com sucesso." ]
+                    [ p [] [ text "Bem-vindo!" ]
+                    , p [] [ text user.email ]
                     , button [ onClick Logout ] [ text "Sair" ]
                     ]
 
