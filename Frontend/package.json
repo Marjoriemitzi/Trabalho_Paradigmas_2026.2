@@ -6,9 +6,11 @@
     "start": "node scripts/dev.mjs",
     "build": "elm make src/Main.elm --output=public/elm.js --optimize",
     "format": "elm-format src --yes",
-    "format:check": "elm-format src --validate"
+    "format:check": "elm-format src --validate",
+    "test": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "elm": "0.19.1-6",
     "elm-format": "0.8.8"
   }
