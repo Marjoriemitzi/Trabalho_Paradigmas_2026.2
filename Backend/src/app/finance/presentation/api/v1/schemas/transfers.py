@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from app.finance.application.dtos.transfers import CreateTransferInput, TransferOutput
 
@@ -49,11 +49,6 @@ class TransferResponse(BaseModel):
 
 class UpdateTransferRequest(CreateTransferRequest):
     pass
-
-
-from datetime import date
-
-from pydantic import Field
 
 
 class TransferListResponse(BaseModel):

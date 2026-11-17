@@ -1,7 +1,8 @@
 import uuid
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.responses import JSONResponse
 
 from app.finance.presentation.api.v1.controllers.transfers_controllers import (
@@ -61,11 +62,6 @@ async def delete_transfer(
     ],
 ) -> Response:
     return await controller.handle(owner_id=current.id.value, transfer_id=transfer_id)
-
-
-from datetime import date
-
-from fastapi import Query
 
 
 @router.get(
