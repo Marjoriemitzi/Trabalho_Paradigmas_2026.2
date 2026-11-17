@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 
 from app.finance.application.ports.unit_of_work import UnitOfWork
-from app.finance.application.use_cases.create_account import (
-    AccountDto,
-)
+from app.finance.application.use_cases.create_account import AccountDto
 from app.finance.application.use_cases.create_account import (
     CreateAccountOutputPort as RenameAccountOutputPort,
 )
