@@ -71,3 +71,23 @@ def get_current_user_factory(
         )
 
     return build
+
+
+def change_password_factory(session_factory, hasher, policy):
+    from app.users.application.use_cases.change_password import ChangePasswordInteractor
+    from app.users.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
+    from app.users.presentation.api.v1.controllers.change_password_controller import (
+        ChangePasswordController,
+    )
+    from app.users.presentation.api.v1.presenters.change_password_presenter import (
+        ChangePasswordHttpPresenter,
+    )
+
+    def build() -> ChangePasswordController:
+        presenter = ChangePasswordHttpPresenter()
+        interactor = ChangePasswordInteractor(
+            SqlAlchemyUnitOfWork(session_factory), hasher, policy, presenter
+        )
+        return ChangePasswordController(interactor, presenter)
+
+    return build
