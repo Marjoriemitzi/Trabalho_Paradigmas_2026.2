@@ -80,3 +80,57 @@ async def test_pagar_a_fatura_move_o_dinheiro_sem_mudar_o_total(
         "Cartão": -150000,
         "Corrente": 520000,
     }
+
+
+@pytest.mark.asyncio
+async def test_list_and_update_transfers(ac_login):
+    ac, headers = ac_login
+
+    # Criar contas
+    c1 = (
+        await ac.post(
+            "/api/v1/accounts", json={"name": "C1", "kind": "checking"}, headers=headers
+        )
+    ).json()["id"]
+    c2 = (
+        await ac.post(
+            "/api/v1/accounts", json={"name": "C2", "kind": "checking"}, headers=headers
+        )
+    ).json()["id"]
+
+    # Criar Transfer
+    res = await ac.post(
+        "/api/v1/transfers",
+        json={
+            "from_account_id": c1,
+            "to_account_id": c2,
+            "amount_cents": 5000,
+            "description": "T",
+            "occurred_on": "2026-11-05",
+        },
+        headers=headers,
+    )
+    t_id = res.json()["id"]
+
+    # Listar
+    res_list = await ac.get(
+        "/api/v1/transfers?from=2026-11-01&to=2026-11-30", headers=headers
+    )
+    assert res_list.status_code == 200
+    assert len(res_list.json()["transfers"]) == 1
+
+    # Atualizar (corrige o valor para 6000)
+    res_up = await ac.put(
+        f"/api/v1/transfers/{t_id}",
+        json={
+            "from_account_id": c1,
+            "to_account_id": c2,
+            "amount_cents": 6000,
+            "description": "T2",
+            "occurred_on": "2026-11-06",
+        },
+        headers=headers,
+    )
+    assert res_up.status_code == 200
+    assert res_up.json()["amount_cents"] == 6000
+    assert res_up.headers["cache-control"] == "no-store"
