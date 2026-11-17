@@ -61,3 +61,59 @@ async def delete_transfer(
     ],
 ) -> Response:
     return await controller.handle(owner_id=current.id.value, transfer_id=transfer_id)
+
+
+from datetime import date
+
+from fastapi import Query
+
+
+@router.get(
+    "",
+    response_model=__import__(
+        "app.finance.presentation.api.v1.schemas.transfers",
+        fromlist=["TransferListResponse"],
+    ).TransferListResponse,
+)
+async def list_transfers(
+    current: CurrentUser,
+    controller: Annotated[
+        __import__(
+            "app.finance.presentation.api.v1.controllers.transfers_controllers",
+            fromlist=["ListTransfersController"],
+        ).ListTransfersController,
+        Depends(
+            __import__(
+                "app.finance.presentation.api.v1.dependencies",
+                fromlist=["get_list_transfers_controller"],
+            ).get_list_transfers_controller
+        ),
+    ],
+    start: date = Query(alias="from"),
+    end: date = Query(alias="to"),
+) -> JSONResponse:
+    return await controller.handle(current.id, start, end)
+
+
+@router.put("/{transfer_id}", response_model=TransferResponse)
+async def update_transfer(
+    transfer_id: str,
+    body: __import__(
+        "app.finance.presentation.api.v1.schemas.transfers",
+        fromlist=["UpdateTransferRequest"],
+    ).UpdateTransferRequest,
+    current: CurrentUser,
+    controller: Annotated[
+        __import__(
+            "app.finance.presentation.api.v1.controllers.transfers_controllers",
+            fromlist=["UpdateTransferController"],
+        ).UpdateTransferController,
+        Depends(
+            __import__(
+                "app.finance.presentation.api.v1.dependencies",
+                fromlist=["get_update_transfer_controller"],
+            ).get_update_transfer_controller
+        ),
+    ],
+) -> JSONResponse:
+    return await controller.handle(body, current.id, transfer_id)

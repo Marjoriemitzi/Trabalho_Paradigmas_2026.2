@@ -178,3 +178,43 @@ def delete_transfer_factory(
         )
 
     return build
+
+
+def list_transfers_factory(session_factory):
+    from app.finance.application.use_cases.list_transfers import ListTransfersInteractor
+    from app.finance.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
+    from app.finance.presentation.api.v1.controllers.transfers_controllers import (
+        ListTransfersController,
+    )
+
+    def build() -> ListTransfersController:
+        def factory(presenter):
+            return ListTransfersInteractor(
+                SqlAlchemyUnitOfWork(session_factory), presenter
+            )
+
+        return ListTransfersController(factory)
+
+    return build
+
+
+def update_transfer_factory(session_factory):
+    from app.finance.application.use_cases.update_transfer import (
+        UpdateTransferInteractor,
+    )
+    from app.finance.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
+    from app.finance.presentation.api.v1.controllers.transfers_controllers import (
+        UpdateTransferController,
+    )
+    from app.finance.presentation.api.v1.presenters.transfer_presenters import (
+        CreateTransferHttpPresenter,
+    )
+
+    def build() -> UpdateTransferController:
+        presenter = CreateTransferHttpPresenter()
+        return UpdateTransferController(
+            UpdateTransferInteractor(SqlAlchemyUnitOfWork(session_factory), presenter),
+            presenter,
+        )
+
+    return build

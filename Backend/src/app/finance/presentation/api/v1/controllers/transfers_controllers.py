@@ -45,3 +45,60 @@ class DeleteTransferController:
         pedido = DeleteTransferInput(owner_id=owner_id, transfer_id=transfer_id)
         await self.build_interactor(presenter).execute(pedido)
         return presenter.response()
+
+
+from app.finance.application.use_cases.list_transfers import ListTransfersRequest
+from app.finance.presentation.api.v1.presenters.transfer_presenters import (
+    ListTransfersHttpPresenter,
+)
+
+
+class ListTransfersController:
+    def __init__(self, interactor_factory) -> None:
+        self._factory = interactor_factory
+
+    async def handle(self, owner_id: str, start, end) -> JSONResponse:
+        presenter = ListTransfersHttpPresenter(start, end)
+        await self._factory(presenter).execute(
+            ListTransfersRequest(owner_id=owner_id, start=start, end=end)
+        )
+        return presenter.response()
+
+
+from app.finance.application.use_cases.update_transfer import (
+    UpdateTransferInteractor,
+    UpdateTransferRequest,
+)
+from app.finance.presentation.api.v1.schemas.transfers import (
+    UpdateTransferRequest as SchemaUpdate,
+)
+
+
+class UpdateTransferController:
+    def __init__(
+        self,
+        interactor: UpdateTransferInteractor,
+        presenter: __import__(
+            "app.finance.presentation.api.v1.presenters.transfer_presenters",
+            fromlist=["CreateTransferHttpPresenter"],
+        ).CreateTransferHttpPresenter,
+    ) -> None:
+        self._interactor = interactor
+        self._presenter = presenter
+
+    async def handle(
+        self, body: SchemaUpdate, owner_id: str, transfer_id: str
+    ) -> JSONResponse:
+        req = UpdateTransferRequest(
+            owner_id=owner_id,
+            transfer_id=transfer_id,
+            from_account_id=str(body.from_account_id),
+            to_account_id=str(body.to_account_id),
+            amount_cents=body.amount_cents,
+            description=body.description,
+            occurred_on=body.occurred_on,
+        )
+        await self._interactor.execute(req)
+        resp = self._presenter.response()
+        resp.headers["Cache-Control"] = "no-store"
+        return resp

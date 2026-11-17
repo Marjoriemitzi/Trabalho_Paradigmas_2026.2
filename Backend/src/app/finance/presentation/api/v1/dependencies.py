@@ -24,7 +24,8 @@ from app.finance.presentation.api.v1.controllers.record_transaction_controller i
     RecordTransactionController,
     RecordTransactionFactory,
 )
-from app.finance.presentation.api.v1.controllers.transfers_controllers import (
+from app.finance.presentation.api.v1.controllers.transfers_controllers import ListTransfersController, UpdateTransferController,
+
     CreateTransferController,
     CreateTransferFactory,
     DeleteTransferController,
@@ -75,3 +76,6 @@ def get_create_transfer_controller(request: Request) -> CreateTransferController
 def get_delete_transfer_controller(request: Request) -> DeleteTransferController:
     factory: DeleteTransferFactory = request.app.state.delete_transfer
     return DeleteTransferController(factory)
+
+def get_list_transfers_controller(request: Request) -> "ListTransfersController": return request.app.state.list_transfers_factory()
+def get_update_transfer_controller(request: Request) -> "UpdateTransferController": return request.app.state.update_transfer_factory()

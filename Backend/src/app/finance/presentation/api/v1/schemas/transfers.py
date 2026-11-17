@@ -45,3 +45,18 @@ class TransferResponse(BaseModel):
             description=transfer.description,
             occurred_on=transfer.occurred_on,
         )
+
+
+class UpdateTransferRequest(CreateTransferRequest):
+    pass
+
+
+from datetime import date
+
+from pydantic import Field
+
+
+class TransferListResponse(BaseModel):
+    start_date: date = Field(alias="from")
+    end_date: date = Field(alias="to")
+    transfers: list[TransferResponse]
