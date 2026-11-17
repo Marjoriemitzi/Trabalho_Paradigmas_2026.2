@@ -16,3 +16,7 @@ class AccountNameTakenError(FinanceDomainError):
 
 class AccountInUseError(Exception):
     pass
+
+
+class AccountInUseError(Exception):
+    pass

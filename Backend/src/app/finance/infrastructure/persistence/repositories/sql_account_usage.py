@@ -14,7 +14,6 @@ class SqlAccountUsage:
         self._session = session
 
     async def in_use(self, owner: OwnerId, account: Account) -> bool:
-        # NOTA: Quando issues #27 (Metas) e #28 (Recorrências) forem implementadas, adicionar as tabelas aqui
         q_trans = select(
             exists().where(
                 TransactionModel.account_id == account.id.value,
