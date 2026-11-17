@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import Protocol
+
 from pydantic import SecretStr
+
 from app.users.application.ports.password_hasher import PasswordHasher
 from app.users.application.ports.unit_of_work import UnitOfWork
-from app.users.domain.exceptions import UserNotFoundError
 from app.users.domain.services.password_policy import PasswordPolicy, WeakPasswordError
-from app.users.domain.value_objects.user_id import UserId
 from app.users.domain.value_objects.password import Password
+from app.users.domain.value_objects.user_id import UserId
 
 
 @dataclass(frozen=True, slots=True)
