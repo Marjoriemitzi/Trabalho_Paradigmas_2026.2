@@ -1,4 +1,5 @@
-class DomainError(Exception): ...
+class DomainError(Exception):
+    pass
 
 
 class InvalidEmailError(DomainError):

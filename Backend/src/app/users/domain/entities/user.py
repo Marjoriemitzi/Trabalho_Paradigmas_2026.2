@@ -7,7 +7,7 @@ from app.users.domain.value_objects.role import Role
 from app.users.domain.value_objects.user_id import UserId
 
 
-@dataclass(slots=True)
+@dataclass(eq=False, slots=True)
 class User:
     id: UserId
     email: Email

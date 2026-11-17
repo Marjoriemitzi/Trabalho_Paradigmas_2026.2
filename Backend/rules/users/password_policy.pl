@@ -1,3 +1,6 @@
+:- module(password_policy, [valid_password/1, password_error/2]).
+:- encoding(utf8).
+
 valid_password(Senha) :-
     string_length(Senha, Tamanho), Tamanho >= 12,
     has_upper(Senha),

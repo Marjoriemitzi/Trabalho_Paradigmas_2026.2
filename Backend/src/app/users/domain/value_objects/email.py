@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from app.users.domain.exceptions import InvalidEmailError
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
 _MAX_LENGTH = 254
 
 

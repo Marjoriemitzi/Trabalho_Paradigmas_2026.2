@@ -1,10 +1,13 @@
 import os
+import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -13,20 +16,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
+from app.main import create_app
+from app.users.infrastructure.persistence.models.user_model import UserModel
+
 BACKEND = Path(__file__).resolve().parents[1]
 
-
-def pytest_configure() -> None:
-    url_de_teste = os.environ.get("TEST_DATABASE_URL")
-    if not url_de_teste:
-        raise pytest.UsageError(
-            "Defina TEST_DATABASE_URL (o docker compose já define no serviço app)."
-        )
-    if url_de_teste == os.environ.get("DATABASE_URL"):
-        raise pytest.UsageError(
-            "TEST_DATABASE_URL não pode ser o mesmo banco de DATABASE_URL."
-        )
-    os.environ["DATABASE_URL"] = url_de_teste
+pytest.register_assert_rewrite("tests.users.contracts", "tests.finance.contracts")
 
 
 @pytest.fixture(scope="session")
@@ -60,3 +55,31 @@ async def session(
 ) -> AsyncIterator[AsyncSession]:
     async with session_factory() as session:
         yield session
+
+
+@pytest.fixture
+async def real_client(migrated_database: str) -> AsyncIterator[AsyncClient]:
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://teste") as client:
+            yield client
+
+
+@pytest.fixture
+async def fresh_email(migrated_database: str) -> AsyncIterator[str]:
+    unico = f"e2e-{uuid.uuid4().hex}@acme.com"
+    yield unico
+    engine = create_async_engine(migrated_database, poolclass=NullPool)
+    async with engine.begin() as conn:
+        await conn.execute(delete(UserModel).where(UserModel.email == unico))
+    await engine.dispose()
+
+
+@pytest.fixture
+async def auth_headers(real_client: AsyncClient, fresh_email: str) -> dict[str, str]:
+    pedido = {"email": fresh_email, "password": "S3nha!Forte123"}
+    assert (await real_client.post("/api/v1/users", json=pedido)).status_code == 201
+    resposta = await real_client.post("/api/v1/auth/login", json=pedido)
+    assert resposta.status_code == 200
+    return {"Authorization": f"Bearer {resposta.json()['access_token']}"}

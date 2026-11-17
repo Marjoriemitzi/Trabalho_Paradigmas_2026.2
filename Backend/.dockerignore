@@ -1,5 +1,3 @@
-# Lista de permissão: tudo é ignorado, exceto o que a imagem precisa.
-# Assim nenhum segredo novo (.env.local, chaves, dumps de banco...) entra na imagem por engano.
 *
 !pyproject.toml
 !poetry.lock
@@ -8,7 +6,6 @@
 !migrations/
 !alembic.ini
 
-# Mesmo dentro das pastas permitidas, nada de caches ou segredos
 **/__pycache__
 **/*.py[cod]
 **/.env

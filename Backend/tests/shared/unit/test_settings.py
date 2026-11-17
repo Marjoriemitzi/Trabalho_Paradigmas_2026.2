@@ -20,7 +20,7 @@ def ambiente(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
 
 
 def test_le_a_configuracao_do_ambiente(ambiente: pytest.MonkeyPatch) -> None:
-    settings = Settings.from_env()
+    settings = Settings()
 
     assert settings.database_url.get_secret_value() == URL
     assert settings.prolog_rules_dir == Path("/app/rules")
@@ -30,32 +30,30 @@ def test_le_a_configuracao_do_ambiente(ambiente: pytest.MonkeyPatch) -> None:
 def test_sem_url_do_banco_a_aplicacao_nao_sobe(ambiente: pytest.MonkeyPatch) -> None:
     ambiente.delenv("DATABASE_URL")
     with pytest.raises(ValidationError, match="database_url"):
-        Settings.from_env()
+        Settings()
 
 
 def test_liga_a_documentacao_quando_pedido(ambiente: pytest.MonkeyPatch) -> None:
     ambiente.setenv("ENABLE_DOCS", "true")
-    assert Settings.from_env().enable_docs is True
+    assert Settings().enable_docs is True
 
 
 def test_a_url_do_banco_nao_aparece_em_logs(ambiente: pytest.MonkeyPatch) -> None:
-    assert "senha" not in repr(Settings.from_env())
+    assert "senha" not in repr(Settings())
 
 
 def test_le_o_segredo_e_a_validade_do_token(ambiente: pytest.MonkeyPatch) -> None:
-    settings = Settings.from_env()
+    settings = Settings()
 
     assert settings.jwt_secret.get_secret_value() == SEGREDO
     assert settings.jwt_expires_minutes == 30
 
 
 def test_recusa_segredo_curto_demais(ambiente: pytest.MonkeyPatch) -> None:
-    # HS256 assina com um segredo de 256 bits; um segredo menor é mais fácil de
-    # quebrar por força bruta, e quem quebra forja tokens de qualquer usuário.
     ambiente.setenv("JWT_SECRET", "a" * 31)
     with pytest.raises(ValidationError, match="jwt_secret"):
-        Settings.from_env()
+        Settings()
 
 
 def test_o_segredo_do_token_nao_aparece_em_logs(ambiente: pytest.MonkeyPatch) -> None:
-    assert SEGREDO not in repr(Settings.from_env())
+    assert SEGREDO not in repr(Settings())

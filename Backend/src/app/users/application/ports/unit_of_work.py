@@ -5,6 +5,9 @@ from app.users.domain.repositories.user_repository import UserRepository
 
 
 class UnitOfWork(Protocol):
+    @property
+    def users(self) -> UserRepository: ...
+
     async def __aenter__(self) -> Self: ...
 
     async def __aexit__(
@@ -15,6 +18,3 @@ class UnitOfWork(Protocol):
     ) -> None: ...
 
     async def commit(self) -> None: ...
-
-    @property
-    def users(self) -> UserRepository: ...

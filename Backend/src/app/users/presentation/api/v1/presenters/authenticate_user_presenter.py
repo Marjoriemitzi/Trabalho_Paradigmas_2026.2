@@ -32,6 +32,5 @@ class AuthenticateUserHttpPresenter(AuthenticateUserOutputPort):
         self._response = error_response(
             status.HTTP_401_UNAUTHORIZED,
             "invalid_credentials",
-            # Todo 401 precisa dizer como se autenticar (RFC 9110, seção 15.5.2).
             headers={"WWW-Authenticate": "Bearer"},
         )

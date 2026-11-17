@@ -91,11 +91,6 @@ docker compose exec db psql -U postgres_admin -d finance    # pede POSTGRES_PASS
 docker compose down -v                     # ⚠️ APAGA todos os dados e recria o banco do zero
 ```
 
-Os testes usam outro Postgres, o serviço `db-test`, que guarda os dados só na memória e não
-publica porta. O pytest troca `DATABASE_URL` por `TEST_DATABASE_URL` antes de tudo, então
-nenhum teste lê ou grava no banco `db`. Para zerar o banco de testes:
-`docker compose restart db-test`.
-
 ## Dev Container (VS Code)
 
 Abra a raiz do monorepo no VS Code, e então paleta de comandos →
