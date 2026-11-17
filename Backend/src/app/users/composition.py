@@ -91,3 +91,25 @@ def change_password_factory(session_factory, hasher, policy):
         return ChangePasswordController(interactor, presenter)
 
     return build
+
+
+def delete_user_factory(session_factory, hasher):
+    from app.users.application.use_cases.delete_user import DeleteUserInteractor
+    from app.users.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
+    from app.users.presentation.api.v1.controllers.delete_user_controller import (
+        DeleteUserController,
+    )
+    from app.users.presentation.api.v1.presenters.delete_user_presenter import (
+        DeleteUserHttpPresenter,
+    )
+
+    def build() -> DeleteUserController:
+        presenter = DeleteUserHttpPresenter()
+        return DeleteUserController(
+            DeleteUserInteractor(
+                SqlAlchemyUnitOfWork(session_factory), hasher, presenter
+            ),
+            presenter,
+        )
+
+    return build

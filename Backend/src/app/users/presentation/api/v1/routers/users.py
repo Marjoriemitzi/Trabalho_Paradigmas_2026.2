@@ -55,7 +55,15 @@ async def register_user(
     },
 )
 async def get_current_user(
-    current: CurrentUser,
+    current: Annotated[
+        CurrentUser,
+        Depends(
+            __import__(
+                "app.users.presentation.api.v1.security",
+                fromlist=["require_authenticated_user_db"],
+            ).require_authenticated_user_db
+        ),
+    ],
     controller: Annotated[
         GetCurrentUserController, Depends(get_current_user_controller)
     ],
@@ -69,7 +77,15 @@ async def change_password(
         "app.users.presentation.api.v1.schemas.change_password",
         fromlist=["ChangePasswordRequest"],
     ).ChangePasswordRequest,
-    current: CurrentUser,
+    current: Annotated[
+        CurrentUser,
+        Depends(
+            __import__(
+                "app.users.presentation.api.v1.security",
+                fromlist=["require_authenticated_user_db"],
+            ).require_authenticated_user_db
+        ),
+    ],
     controller: Annotated[
         __import__(
             "app.users.presentation.api.v1.controllers.change_password_controller",
@@ -81,6 +97,32 @@ async def change_password(
                 fromlist=["get_change_password_controller"],
             ).get_change_password_controller
         ),
+    ],
+) -> JSONResponse:
+    return await controller.handle(body, current.id)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    body: __import__(
+        "app.users.presentation.api.v1.schemas.delete_user",
+        fromlist=["DeleteUserRequest"],
+    ).DeleteUserRequest,
+    current: Annotated[
+        CurrentUser,
+        Depends(
+            __import__(
+                "app.users.presentation.api.v1.security",
+                fromlist=["require_authenticated_user_db"],
+            ).require_authenticated_user_db
+        ),
+    ],
+    controller: Annotated[
+        __import__(
+            "app.users.presentation.api.v1.controllers.delete_user_controller",
+            fromlist=["DeleteUserController"],
+        ).DeleteUserController,
+        Depends(lambda r: r.app.state.delete_user_factory()),
     ],
 ) -> JSONResponse:
     return await controller.handle(body, current.id)

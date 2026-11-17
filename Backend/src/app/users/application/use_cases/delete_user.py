@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
+
 from pydantic import SecretStr
+
 from app.users.application.ports.password_hasher import PasswordHasher
 from app.users.application.ports.unit_of_work import UnitOfWork
 from app.users.domain.value_objects.user_id import UserId

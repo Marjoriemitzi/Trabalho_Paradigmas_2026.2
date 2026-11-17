@@ -41,3 +41,22 @@ def require_authenticated_user(
 
 
 CurrentUser = Annotated[AuthenticatedUser, Depends(require_authenticated_user)]
+
+
+async def require_authenticated_user_db(
+    current: CurrentUser, request: __import__("fastapi").Request
+) -> CurrentUser:
+    session_factory = request.app.state.session_factory
+    from app.users.domain.value_objects.user_id import UserId
+    from app.users.infrastructure.persistence.repositories.sql_user_repository import (
+        SqlUserRepository,
+    )
+
+    async with session_factory() as session:
+        if not await SqlUserRepository(session).get_by_id(UserId(current.id)):
+            from fastapi import status
+
+            from app.shared.presentation.api.errors import ApiError
+
+            raise ApiError(status.HTTP_401_UNAUTHORIZED, "invalid_token")
+    return current
