@@ -24,9 +24,7 @@ from app.finance.presentation.api.v1.controllers.record_transaction_controller i
     RecordTransactionController,
     RecordTransactionFactory,
 )
-from app.finance.presentation.api.v1.controllers.transfers_controllers import ListTransfersController, UpdateTransferController
-
-    CreateTransferController,
+CreateTransferController,
     CreateTransferFactory,
     DeleteTransferController,
     DeleteTransferFactory,
