@@ -72,3 +72,29 @@ async def test_rename_and_delete_account_real(ac_login):
     # Não acha mais
     res4 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
     assert res4.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_rename_and_delete_account_real(ac_login):
+    ac, headers = ac_login
+
+    # Criar
+    res = await ac.post(
+        "/api/v1/accounts", json={"name": "Vazia", "kind": "checking"}, headers=headers
+    )
+    acc_id = res.json()["id"]
+
+    # Renomear
+    res2 = await ac.patch(
+        f"/api/v1/accounts/{acc_id}", json={"name": "Nova Vazia"}, headers=headers
+    )
+    assert res2.status_code == 200
+    assert res2.json()["name"] == "Nova Vazia"
+
+    # Deletar conta vazia
+    res3 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
+    assert res3.status_code == 204
+
+    # Não acha mais
+    res4 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
+    assert res4.status_code == 404
