@@ -57,7 +57,7 @@ RUN ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry \
 ENV POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1
 USER app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--proxy-headers", "--forwarded-allow-ips", "*", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM runtime-base AS runtime
 COPY --from=builder-prod /opt/venv /opt/venv
@@ -66,4 +66,4 @@ COPY rules/ ./rules/
 COPY migrations/ ./migrations/
 COPY alembic.ini ./
 USER app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+CMD ["uvicorn", "app.main:app", "--proxy-headers", "--forwarded-allow-ips", "*", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]

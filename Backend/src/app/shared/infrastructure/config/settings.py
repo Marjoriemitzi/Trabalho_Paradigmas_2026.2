@@ -12,3 +12,4 @@ class Settings(BaseSettings):
     jwt_expires_minutes: int = Field(default=30, gt=0)
     access_token_minutes: int = Field(default=15, gt=0)
     refresh_token_days: int = Field(default=30, gt=0)
+    forwarded_allow_ips: str = Field(default="")
