@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Protocol
+
 from app.finance.application.ports.unit_of_work import UnitOfWork
 from app.finance.domain.exceptions import AccountInUseError
 from app.finance.domain.value_objects.account_id import AccountId

@@ -178,3 +178,41 @@ def delete_transfer_factory(
         )
 
     return build
+
+
+def rename_account_factory(session_factory):
+    from app.finance.application.use_cases.rename_account import RenameAccountInteractor
+    from app.finance.presentation.api.v1.controllers.accounts_controllers import (
+        RenameAccountController,
+    )
+    from app.finance.presentation.api.v1.presenters.create_account_presenter import (
+        CreateAccountHttpPresenter,
+    )
+
+    def build() -> RenameAccountController:
+        presenter = CreateAccountHttpPresenter()
+        return RenameAccountController(
+            RenameAccountInteractor(SqlAlchemyUnitOfWork(session_factory), presenter),
+            presenter,
+        )
+
+    return build
+
+
+def delete_account_factory(session_factory):
+    from app.finance.application.use_cases.delete_account import DeleteAccountInteractor
+    from app.finance.presentation.api.v1.controllers.accounts_controllers import (
+        DeleteAccountController,
+    )
+    from app.finance.presentation.api.v1.presenters.delete_account_presenter import (
+        DeleteAccountHttpPresenter,
+    )
+
+    def build() -> DeleteAccountController:
+        presenter = DeleteAccountHttpPresenter()
+        return DeleteAccountController(
+            DeleteAccountInteractor(SqlAlchemyUnitOfWork(session_factory), presenter),
+            presenter,
+        )
+
+    return build

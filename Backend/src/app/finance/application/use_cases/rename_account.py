@@ -1,14 +1,16 @@
 from dataclasses import dataclass
-from typing import Protocol
+
 from app.finance.application.ports.unit_of_work import UnitOfWork
+from app.finance.application.use_cases.create_account import (
+    AccountDto,
+)
+from app.finance.application.use_cases.create_account import (
+    CreateAccountOutputPort as RenameAccountOutputPort,
+)
 from app.finance.domain.exceptions import AccountNameTakenError, InvalidAccountError
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.account_name import AccountName
 from app.finance.domain.value_objects.owner_id import OwnerId
-from app.finance.application.use_cases.create_account import (
-    CreateAccountOutputPort as RenameAccountOutputPort,
-    AccountDto,
-)
 
 
 @dataclass(frozen=True, slots=True)

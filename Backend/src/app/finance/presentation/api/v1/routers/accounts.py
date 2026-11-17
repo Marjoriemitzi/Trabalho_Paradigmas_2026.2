@@ -57,3 +57,47 @@ async def list_accounts(
     ],
 ) -> JSONResponse:
     return await controller.handle(owner_id=current.id.value)
+
+
+@router.patch("/{account_id}", response_model=AccountResponse)
+async def rename_account(
+    account_id: str,
+    body: __import__(
+        "app.finance.presentation.api.v1.schemas.accounts",
+        fromlist=["RenameAccountRequest"],
+    ).RenameAccountRequest,
+    current: CurrentUser,
+    controller: Annotated[
+        __import__(
+            "app.finance.presentation.api.v1.controllers.accounts_controllers",
+            fromlist=["RenameAccountController"],
+        ).RenameAccountController,
+        Depends(
+            __import__(
+                "app.finance.presentation.api.v1.dependencies",
+                fromlist=["get_rename_account_controller"],
+            ).get_rename_account_controller
+        ),
+    ],
+) -> JSONResponse:
+    return await controller.handle(body, current.id, account_id)
+
+
+@router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    account_id: str,
+    current: CurrentUser,
+    controller: Annotated[
+        __import__(
+            "app.finance.presentation.api.v1.controllers.accounts_controllers",
+            fromlist=["DeleteAccountController"],
+        ).DeleteAccountController,
+        Depends(
+            __import__(
+                "app.finance.presentation.api.v1.dependencies",
+                fromlist=["get_delete_account_controller"],
+            ).get_delete_account_controller
+        ),
+    ],
+) -> JSONResponse:
+    return await controller.handle(current.id, account_id)

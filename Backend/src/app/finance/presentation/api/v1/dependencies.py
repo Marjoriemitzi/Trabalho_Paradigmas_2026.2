@@ -3,8 +3,10 @@ from fastapi import Request
 from app.finance.presentation.api.v1.controllers.accounts_controllers import (
     CreateAccountController,
     CreateAccountFactory,
+    DeleteAccountController,
     ListAccountsController,
     ListAccountsFactory,
+    RenameAccountController,
 )
 from app.finance.presentation.api.v1.controllers.categories_controller import (
     ListCategoriesController,
@@ -75,3 +77,11 @@ def get_create_transfer_controller(request: Request) -> CreateTransferController
 def get_delete_transfer_controller(request: Request) -> DeleteTransferController:
     factory: DeleteTransferFactory = request.app.state.delete_transfer
     return DeleteTransferController(factory)
+
+
+def get_rename_account_controller(request: Request) -> "RenameAccountController":
+    return request.app.state.rename_account_factory()
+
+
+def get_delete_account_controller(request: Request) -> "DeleteAccountController":
+    return request.app.state.delete_account_factory()

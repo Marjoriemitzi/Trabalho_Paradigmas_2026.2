@@ -46,3 +46,54 @@ class ListAccountsController:
         pedido = ListAccountsInput(owner_id=owner_id)
         await self.build_interactor(presenter).execute(pedido)
         return presenter.response()
+
+
+from app.finance.application.use_cases.rename_account import RenameAccountInteractor
+from app.finance.application.use_cases.rename_account import (
+    RenameAccountRequest as RenameDto,
+)
+from app.finance.presentation.api.v1.schemas.accounts import RenameAccountRequest
+
+
+class RenameAccountController:
+    def __init__(
+        self,
+        interactor: RenameAccountInteractor,
+        presenter: __import__(
+            "app.finance.presentation.api.v1.presenters.create_account_presenter",
+            fromlist=["CreateAccountHttpPresenter"],
+        ).CreateAccountHttpPresenter,
+    ) -> None:
+        self._interactor = interactor
+        self._presenter = presenter
+
+    async def handle(
+        self, body: RenameAccountRequest, owner_id: str, account_id: str
+    ) -> JSONResponse:
+        await self._interactor.execute(
+            RenameDto(owner_id=owner_id, account_id=account_id, name=body.name)
+        )
+        return self._presenter.response()
+
+
+from app.finance.application.use_cases.delete_account import DeleteAccountInteractor
+from app.finance.application.use_cases.delete_account import (
+    DeleteAccountRequest as DeleteDto,
+)
+from app.finance.presentation.api.v1.presenters.delete_account_presenter import (
+    DeleteAccountHttpPresenter,
+)
+
+
+class DeleteAccountController:
+    def __init__(
+        self, interactor: DeleteAccountInteractor, presenter: DeleteAccountHttpPresenter
+    ) -> None:
+        self._interactor = interactor
+        self._presenter = presenter
+
+    async def handle(self, owner_id: str, account_id: str) -> JSONResponse:
+        await self._interactor.execute(
+            DeleteDto(owner_id=owner_id, account_id=account_id)
+        )
+        return self._presenter.response()

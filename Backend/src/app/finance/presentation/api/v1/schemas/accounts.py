@@ -48,3 +48,8 @@ class AccountSummaryResponse(BaseModel):
 
 class AccountListResponse(BaseModel):
     accounts: list[AccountSummaryResponse]
+
+
+class RenameAccountRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str
