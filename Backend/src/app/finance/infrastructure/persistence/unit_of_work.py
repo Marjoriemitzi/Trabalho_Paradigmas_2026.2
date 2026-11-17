@@ -45,3 +45,7 @@ class SqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     @property
     def transfers(self) -> TransferRepository:
         return SqlTransferRepository(self._open_session())
+
+    @property
+    def account_usage(self) -> AccountUsage:
+        return SqlAccountUsage(self._open_session())

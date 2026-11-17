@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Protocol, Self
 
+from app.finance.application.ports.account_usage import AccountUsage
 from app.finance.application.ports.spending_reader import SpendingReader
 from app.finance.domain.repositories.account_repository import AccountRepository
 from app.finance.domain.repositories.category_catalog import CategoryCatalog
@@ -36,3 +37,5 @@ class UnitOfWork(Protocol):
     ) -> None: ...
 
     async def commit(self) -> None: ...
+    @property
+    def account_usage(self) -> AccountUsage: ...

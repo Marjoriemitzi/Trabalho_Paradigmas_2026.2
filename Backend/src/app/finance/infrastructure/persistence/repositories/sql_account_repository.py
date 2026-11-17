@@ -43,3 +43,26 @@ class SqlAccountRepository:
         )
         modelo = await self._session.scalar(consulta)
         return None if modelo is None else to_entity(modelo)
+
+    async def update(self, account: Account) -> None:
+        modelo = await self._session.get(AccountModel, account.id.value)
+        if modelo:
+            modelo.name = account.name.value
+            try:
+                await self._session.flush()
+            except IntegrityError as error:
+                if f""{NOME_UNICO}"" in str(error.orig):
+                    raise AccountNameTakenError(account.name.value) from error
+                raise
+
+    async def remove(self, account: Account) -> None:
+        modelo = await self._session.get(AccountModel, account.id.value)
+        if modelo:
+            await self._session.delete(modelo)
+            try:
+                await self._session.flush()
+            except IntegrityError as error:
+                if "fk_" in str(error.orig) and "RESTRICT" in str(error.orig):
+                    from app.finance.domain.exceptions import AccountInUseError
+                    raise AccountInUseError() from error
+                raise
