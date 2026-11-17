@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.users.application.ports.password_hasher import PasswordHasher
@@ -12,6 +14,7 @@ from app.users.application.use_cases.get_current_user import (
     GetCurrentUserInteractor,
     GetCurrentUserOutputPort,
 )
+from app.users.application.use_cases.logout_interactor import LogoutInteractor
 from app.users.application.use_cases.register_user import (
     RegisterUserInputPort,
     RegisterUserInteractor,
@@ -25,6 +28,7 @@ from app.users.presentation.api.v1.controllers.authenticate_user_controller impo
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserFactory,
 )
+from app.users.presentation.api.v1.controllers.logout_controller import LogoutFactory
 from app.users.presentation.api.v1.controllers.register_user_controller import (
     RegisterUserFactory,
 )
@@ -67,6 +71,15 @@ def get_current_user_factory(
 ) -> GetCurrentUserFactory:
     def build(presenter: GetCurrentUserOutputPort) -> GetCurrentUserInputPort:
         return GetCurrentUserInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
+        )
+
+    return build
+
+
+def logout_factory(session_factory: async_sessionmaker[AsyncSession]) -> LogoutFactory:
+    def build(presenter: Any) -> LogoutInteractor:
+        return LogoutInteractor(
             uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
         )
 

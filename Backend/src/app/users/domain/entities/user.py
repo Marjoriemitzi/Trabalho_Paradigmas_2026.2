@@ -23,3 +23,6 @@ class User:
 
     def __hash__(self) -> int:
         return hash(self.id)
+
+
+__all__ = ["UserId", "User"]

@@ -1,14 +1,16 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Protocol
 
-from app.users.domain.value_objects.role import Role
-from app.users.domain.value_objects.user_id import UserId
+from app.users.domain.entities.user import UserId
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class AuthenticatedUser:
     id: UserId
-    role: Role
+    role: str
+    jti: str = ""
+    exp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class TokenVerifier(Protocol):

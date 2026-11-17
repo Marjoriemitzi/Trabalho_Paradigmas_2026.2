@@ -3,7 +3,11 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.users.application.ports.token_blocklist import TokenBlocklist
 from app.users.domain.repositories.user_repository import UserRepository
+from app.users.infrastructure.persistence.repositories.sql_token_blocklist import (
+    SqlTokenBlocklist,
+)
 from app.users.infrastructure.persistence.repositories.sql_user_repository import (
     SqlUserRepository,
 )
@@ -38,3 +42,7 @@ class SqlAlchemyUnitOfWork:
         if self._session is None:
             raise RuntimeError("Use a UnitOfWork dentro de um bloco 'async with'.")
         return self._session
+
+    @property
+    def token_blocklist(self) -> TokenBlocklist:
+        return SqlTokenBlocklist(self._open_session())

@@ -11,6 +11,7 @@ from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.users.composition import (
     authenticate_user_factory,
     get_current_user_factory,
+    logout_factory,
     register_user_factory,
 )
 from app.users.infrastructure.prolog.prolog_password_policy import (
@@ -54,6 +55,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         app.state.token_verifier = JwtTokenVerifier(secret=jwt_secret)
         app.state.get_current_user = get_current_user_factory(session_factory)
+        app.state.logout = logout_factory(session_factory)
+        app.state.session_factory = session_factory
 
         yield
         await engine.dispose()

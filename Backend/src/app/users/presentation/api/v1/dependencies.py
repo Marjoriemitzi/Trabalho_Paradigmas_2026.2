@@ -8,6 +8,10 @@ from app.users.presentation.api.v1.controllers.get_current_user_controller impor
     GetCurrentUserController,
     GetCurrentUserFactory,
 )
+from app.users.presentation.api.v1.controllers.logout_controller import (
+    LogoutController,
+    LogoutFactory,
+)
 from app.users.presentation.api.v1.controllers.register_user_controller import (
     RegisterUserController,
     RegisterUserFactory,
@@ -27,3 +31,8 @@ def get_authenticate_user_controller(request: Request) -> AuthenticateUserContro
 def get_current_user_controller(request: Request) -> GetCurrentUserController:
     factory: GetCurrentUserFactory = request.app.state.get_current_user
     return GetCurrentUserController(factory)
+
+
+def get_logout_controller(request: Request) -> LogoutController:
+    factory: LogoutFactory = request.app.state.logout
+    return LogoutController(factory)

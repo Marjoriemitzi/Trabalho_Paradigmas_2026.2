@@ -5,6 +5,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.shared.presentation.api.errors import ApiError
 from app.users.application.ports.token_verifier import AuthenticatedUser, TokenVerifier
+from app.users.infrastructure.persistence.repositories.sql_token_blocklist import (
+    SqlTokenBlocklist,
+)
 
 _bearer = HTTPBearer(
     auto_error=False, description="O access_token devolvido por /api/v1/auth/login"
@@ -27,7 +30,7 @@ def invalid_token() -> ApiError:
     )
 
 
-def require_authenticated_user(
+async def require_authenticated_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> AuthenticatedUser:
@@ -37,6 +40,13 @@ def require_authenticated_user(
     current = verifier.verify(credentials.credentials)
     if current is None:
         raise invalid_token()
+
+    session_factory = request.app.state.session_factory
+    async with session_factory() as session:
+        blocklist = SqlTokenBlocklist(session)
+        if await blocklist.contains(current.jti):
+            raise invalid_token()
+
     return current
 
 
