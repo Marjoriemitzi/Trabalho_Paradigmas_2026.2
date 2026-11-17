@@ -57,3 +57,59 @@ def test_recusa_segredo_curto_demais(ambiente: pytest.MonkeyPatch) -> None:
 
 def test_o_segredo_do_token_nao_aparece_em_logs(ambiente: pytest.MonkeyPatch) -> None:
     assert SEGREDO not in repr(Settings())
+
+
+def test_padrao_cors_vazio(ambiente) -> None:
+    from app.shared.infrastructure.config.settings import Settings
+
+    assert Settings().cors_origins == []
+
+
+def test_cors_lista_separada_por_virgula(ambiente) -> None:
+    from app.shared.infrastructure.config.settings import Settings
+
+    ambiente.setenv("CORS_ORIGINS", "http://localhost:8001, https://meu-app.com/ ")
+    assert Settings().cors_origins == ["http://localhost:8001", "https://meu-app.com"]
+
+
+def test_cors_recusa_asterisco(ambiente) -> None:
+    from pydantic import ValidationError
+
+    from app.shared.infrastructure.config.settings import Settings
+
+    ambiente.setenv("CORS_ORIGINS", "*")
+    import pytest
+
+    with pytest.raises(ValidationError, match="CORS .* não é permitido"):
+        Settings()
+
+
+def test_cors_recusa_sem_esquema(ambiente) -> None:
+    from pydantic import ValidationError
+
+    from app.shared.infrastructure.config.settings import Settings
+
+    ambiente.setenv("CORS_ORIGINS", "localhost:8000")
+    import pytest
+
+    with pytest.raises(ValidationError, match="esquema http/https"):
+        Settings()
+
+
+def test_cors_recusa_com_barra_no_final(ambiente) -> None:
+    from pydantic import ValidationError
+
+    from app.shared.infrastructure.config.settings import Settings
+
+    ambiente.setenv("CORS_ORIGINS", "http://localhost:8000/")
+    import pytest
+
+    with pytest.raises(ValidationError, match="terminar com barra"):
+        Settings()
+
+
+def test_cors_texto_vazio_vira_lista_vazia(ambiente) -> None:
+    from app.shared.infrastructure.config.settings import Settings
+
+    ambiente.setenv("CORS_ORIGINS", "   ")
+    assert Settings().cors_origins == []
