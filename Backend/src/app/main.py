@@ -28,6 +28,7 @@ from app.finance.presentation.api.v1.routers import (
 from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
 from app.shared.presentation.api.error_handlers import install_error_handlers
+from app.shared.presentation.api.middleware import CacheControlMiddleware
 from app.users.composition import (
     authenticate_user_factory,
     get_current_user_factory,
@@ -99,6 +100,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs else None,
     )
     install_error_handlers(app)
+    app.add_middleware(CacheControlMiddleware)
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
