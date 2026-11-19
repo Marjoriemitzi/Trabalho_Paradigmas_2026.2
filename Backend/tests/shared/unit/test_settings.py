@@ -59,57 +59,37 @@ def test_o_segredo_do_token_nao_aparece_em_logs(ambiente: pytest.MonkeyPatch) ->
     assert SEGREDO not in repr(Settings())
 
 
-def test_padrao_cors_vazio(ambiente) -> None:
-    from app.shared.infrastructure.config.settings import Settings
+def test_o_padrao_do_cors_e_lista_vazia(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.delenv("CORS_ORIGINS", raising=False)
 
     assert Settings().cors_origins == []
 
 
-def test_cors_lista_separada_por_virgula(ambiente) -> None:
-    from app.shared.infrastructure.config.settings import Settings
+def test_cors_aceita_lista_separada_por_virgula(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("CORS_ORIGINS", "http://localhost:8001, https://meu-app.com ")
 
-    ambiente.setenv("CORS_ORIGINS", "http://localhost:8001, https://meu-app.com/ ")
     assert Settings().cors_origins == ["http://localhost:8001", "https://meu-app.com"]
 
 
-def test_cors_recusa_asterisco(ambiente) -> None:
-    from pydantic import ValidationError
+@pytest.mark.parametrize(
+    ("valor", "trecho"),
+    [
+        ("*", "não é permitido"),
+        ("http://localhost:8001,*", "não é permitido"),
+        ("localhost:8000", "esquema http/https"),
+        ("http://localhost:8000/", "terminar com barra"),
+    ],
+)
+def test_cors_recusa_origem_invalida(
+    ambiente: pytest.MonkeyPatch, valor: str, trecho: str
+) -> None:
+    ambiente.setenv("CORS_ORIGINS", valor)
 
-    from app.shared.infrastructure.config.settings import Settings
-
-    ambiente.setenv("CORS_ORIGINS", "*")
-    import pytest
-
-    with pytest.raises(ValidationError, match="CORS .* não é permitido"):
+    with pytest.raises(ValidationError, match=trecho):
         Settings()
 
 
-def test_cors_recusa_sem_esquema(ambiente) -> None:
-    from pydantic import ValidationError
-
-    from app.shared.infrastructure.config.settings import Settings
-
-    ambiente.setenv("CORS_ORIGINS", "localhost:8000")
-    import pytest
-
-    with pytest.raises(ValidationError, match="esquema http/https"):
-        Settings()
-
-
-def test_cors_recusa_com_barra_no_final(ambiente) -> None:
-    from pydantic import ValidationError
-
-    from app.shared.infrastructure.config.settings import Settings
-
-    ambiente.setenv("CORS_ORIGINS", "http://localhost:8000/")
-    import pytest
-
-    with pytest.raises(ValidationError, match="terminar com barra"):
-        Settings()
-
-
-def test_cors_texto_vazio_vira_lista_vazia(ambiente) -> None:
-    from app.shared.infrastructure.config.settings import Settings
-
+def test_cors_texto_vazio_vira_lista_vazia(ambiente: pytest.MonkeyPatch) -> None:
     ambiente.setenv("CORS_ORIGINS", "   ")
+
     assert Settings().cors_origins == []
