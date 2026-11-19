@@ -11,26 +11,25 @@ class Settings(BaseSettings):
     enable_docs: bool = False
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_expires_minutes: int = Field(default=30, gt=0)
-
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     @field_validator("cors_origins", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v: object) -> list[str]:
-        if isinstance(v, str):
-            v = [x.strip() for x in v.split(",") if x.strip()]
-        if isinstance(v, list):
-            for origin in v:
-                if origin == "*":
-                    raise ValueError(
-                        'CORS "*" não é permitido. Especifique as origens.'
-                    )
-                if not origin.startswith(("http://", "https://")):
-                    raise ValueError(
-                        f"Origem CORS deve ter esquema http/https: {origin}"
-                    )
-                if origin.endswith("/"):
-                    raise ValueError(
-                        f"Origem CORS não deve terminar com barra: {origin}"
-                    )
-        return v  # type: ignore
+    def _separa_as_origens(cls, valor: object) -> object:
+        if isinstance(valor, str):
+            return [parte.strip() for parte in valor.split(",") if parte.strip()]
+        return valor
+
+    @field_validator("cors_origins")
+    @classmethod
+    def _confere_as_origens(cls, origens: list[str]) -> list[str]:
+        for origem in origens:
+            if origem == "*":
+                raise ValueError('CORS "*" não é permitido: liste cada origem')
+            if not origem.startswith(("http://", "https://")):
+                raise ValueError(
+                    f"A origem CORS precisa do esquema http/https: {origem}"
+                )
+            if origem.endswith("/"):
+                raise ValueError(f"A origem CORS não pode terminar com barra: {origem}")
+        return origens

@@ -100,6 +100,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs else None,
     )
     install_error_handlers(app)
+    app.add_middleware(CacheControlMiddleware)
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=False,
+            expose_headers=["Retry-After"],
+            max_age=600,
+        )
     app.include_router(users.router)
     app.include_router(auth.router)
     app.include_router(accounts.router)
@@ -111,17 +122,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    if settings.cors_origins:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=settings.cors_origins,
-            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            allow_headers=["Authorization", "Content-Type"],
-            allow_credentials=False,
-            expose_headers=["Retry-After"],
-            max_age=600,
-        )
-        app.add_middleware(CacheControlMiddleware)
     return app
 
 
