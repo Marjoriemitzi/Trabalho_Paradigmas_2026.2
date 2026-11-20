@@ -1,3 +1,5 @@
+import uuid
+
 from httpx import AsyncClient
 
 URL = "/api/v1/accounts"
@@ -48,53 +50,82 @@ async def test_o_saldo_de_cada_conta_vem_das_transacoes_dela(
     assert saldos == {"Carteira": -2390, "Nubank": 515410}
 
 
-@pytest.mark.asyncio
-async def test_rename_and_delete_account_real(ac_login):
-    ac, headers = ac_login
-
-    # Criar
-    res = await ac.post(
-        "/api/v1/accounts", json={"name": "Vazia", "kind": "checking"}, headers=headers
+async def test_renomear_e_nome_repetido(
+    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+) -> None:
+    await real_client.post(
+        URL, json={"name": "Nubank", "kind": "checking"}, headers=auth_headers
     )
-    acc_id = res.json()["id"]
 
-    # Renomear
-    res2 = await ac.patch(
-        f"/api/v1/accounts/{acc_id}", json={"name": "Nova Vazia"}, headers=headers
+    renomeada = await real_client.patch(
+        f"{URL}/{carteira}", json={"name": "Dinheiro"}, headers=auth_headers
     )
-    assert res2.status_code == 200
-    assert res2.json()["name"] == "Nova Vazia"
-
-    # Deletar conta vazia
-    res3 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
-    assert res3.status_code == 204
-
-    # Não acha mais
-    res4 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
-    assert res4.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_rename_and_delete_account_real(ac_login):
-    ac, headers = ac_login
-
-    # Criar
-    res = await ac.post(
-        "/api/v1/accounts", json={"name": "Vazia", "kind": "checking"}, headers=headers
+    repetida = await real_client.patch(
+        f"{URL}/{carteira}", json={"name": "NUBANK"}, headers=auth_headers
     )
-    acc_id = res.json()["id"]
-
-    # Renomear
-    res2 = await ac.patch(
-        f"/api/v1/accounts/{acc_id}", json={"name": "Nova Vazia"}, headers=headers
+    so_a_caixa = await real_client.patch(
+        f"{URL}/{carteira}", json={"name": "DINHEIRO"}, headers=auth_headers
     )
-    assert res2.status_code == 200
-    assert res2.json()["name"] == "Nova Vazia"
 
-    # Deletar conta vazia
-    res3 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
-    assert res3.status_code == 204
+    assert renomeada.status_code == 200
+    assert renomeada.json()["name"] == "Dinheiro"
+    assert repetida.status_code == 409
+    assert so_a_caixa.status_code == 200
 
-    # Não acha mais
-    res4 = await ac.delete(f"/api/v1/accounts/{acc_id}", headers=headers)
-    assert res4.status_code == 404
+
+async def test_apagar_conta_vazia_ela_some_da_lista(
+    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+) -> None:
+    apagada = await real_client.delete(f"{URL}/{carteira}", headers=auth_headers)
+
+    lista = await real_client.get(URL, headers=auth_headers)
+    assert apagada.status_code == 204
+    assert lista.json() == {"accounts": []}
+
+
+async def test_conta_com_transacao_nao_pode_ser_apagada(
+    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+) -> None:
+    lancamento = {
+        "account_id": carteira,
+        "kind": "expense",
+        "amount_cents": 1500,
+        "description": "Lanche",
+        "occurred_on": "2026-11-07",
+    }
+    await real_client.post(
+        "/api/v1/transactions", json=lancamento, headers=auth_headers
+    )
+
+    resposta = await real_client.delete(f"{URL}/{carteira}", headers=auth_headers)
+
+    assert resposta.status_code == 409
+    assert resposta.json() == {"error": "account_in_use"}
+    lista = await real_client.get(URL, headers=auth_headers)
+    assert [c["name"] for c in lista.json()["accounts"]] == ["Carteira"]
+
+
+async def test_conta_de_outra_pessoa_responde_404(
+    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+) -> None:
+    outra = await real_client.post(
+        "/api/v1/users",
+        json={
+            "email": f"outra-{uuid.uuid4().hex}@acme.com",
+            "password": "S3nha!Forte123",
+        },
+    )
+    assert outra.status_code == 201
+    login = await real_client.post(
+        "/api/v1/auth/login",
+        json={"email": outra.json()["email"], "password": "S3nha!Forte123"},
+    )
+    intruso = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    renomear = await real_client.patch(
+        f"{URL}/{carteira}", json={"name": "X"}, headers=intruso
+    )
+    apagar = await real_client.delete(f"{URL}/{carteira}", headers=intruso)
+
+    assert renomear.status_code == apagar.status_code == 404
+    assert apagar.json() == {"error": "account_not_found"}

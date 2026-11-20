@@ -1,4 +1,4 @@
-from sqlalchemy import exists, select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.finance.domain.entities.account import Account
@@ -10,31 +10,28 @@ from app.finance.infrastructure.persistence.models.transfer_model import Transfe
 
 
 class SqlAccountUsage:
+    """Diz se algo segura a conta no banco.
+
+    Ao criar uma tabela que aponta para `accounts` (recorrências, metas), some a
+    consulta dela aqui, senão a conta passa a poder ser apagada com dados ligados.
+    """
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def in_use(self, owner: OwnerId, account: Account) -> bool:
-        q_trans = select(
-            exists().where(
-                TransactionModel.account_id == account.id.value,
-                TransactionModel.owner_id == owner.value,
-            )
+        conta = account.id.value
+        com_transacao = exists().where(
+            TransactionModel.owner_id == owner.value,
+            TransactionModel.account_id == conta,
         )
-        q_transf_out = select(
-            exists().where(
-                TransferModel.from_account_id == account.id.value,
-                TransferModel.owner_id == owner.value,
-            )
+        com_transferencia = exists().where(
+            TransferModel.owner_id == owner.value,
+            or_(
+                TransferModel.from_account_id == conta,
+                TransferModel.to_account_id == conta,
+            ),
         )
-        q_transf_in = select(
-            exists().where(
-                TransferModel.to_account_id == account.id.value,
-                TransferModel.owner_id == owner.value,
-            )
-        )
-
         return bool(
-            await self._session.scalar(q_trans)
-            or await self._session.scalar(q_transf_out)
-            or await self._session.scalar(q_transf_in)
+            await self._session.scalar(select(com_transacao | com_transferencia))
         )

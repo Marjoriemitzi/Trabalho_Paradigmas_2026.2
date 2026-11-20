@@ -14,9 +14,6 @@ class AccountNameTakenError(FinanceDomainError):
         self.name = name
 
 
-class AccountInUseError(Exception):
-    pass
-
-
-class AccountInUseError(Exception):
-    pass
+class AccountInUseError(FinanceDomainError):
+    def __init__(self) -> None:
+        super().__init__("A conta tem lançamentos ou transferências ligados a ela")

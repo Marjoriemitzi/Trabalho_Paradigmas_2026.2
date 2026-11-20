@@ -8,6 +8,7 @@ from app.finance.application.dtos.create_account import (
     CreateAccountInput,
 )
 from app.finance.application.dtos.list_accounts import AccountSummary
+from app.finance.application.dtos.rename_account import RenameAccountInput
 
 
 class CreateAccountRequest(BaseModel):
@@ -52,4 +53,12 @@ class AccountListResponse(BaseModel):
 
 class RenameAccountRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     name: str
+
+    def to_input(
+        self, owner_id: uuid.UUID, account_id: uuid.UUID
+    ) -> RenameAccountInput:
+        return RenameAccountInput(
+            owner_id=owner_id, account_id=account_id, name=self.name
+        )

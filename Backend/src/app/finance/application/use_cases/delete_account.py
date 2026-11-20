@@ -1,49 +1,45 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.finance.application.dtos.delete_account import DeleteAccountInput
 from app.finance.application.ports.unit_of_work import UnitOfWork
 from app.finance.domain.exceptions import AccountInUseError
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.owner_id import OwnerId
 
 
-@dataclass(frozen=True, slots=True)
-class DeleteAccountRequest:
-    owner_id: str
-    account_id: str
+class DeleteAccountInputPort(Protocol):
+    async def execute(self, data: DeleteAccountInput) -> None: ...
 
 
 class DeleteAccountOutputPort(Protocol):
-    def present_success(self) -> None: ...
-    def present_account_not_found(self) -> None: ...
-    def present_account_in_use(self) -> None: ...
+    def present_deleted(self) -> None: ...
+
+    def present_in_use(self) -> None: ...
+
+    def present_not_found(self) -> None: ...
 
 
-class DeleteAccountInteractor:
-    def __init__(self, uow: UnitOfWork, presenter: DeleteAccountOutputPort) -> None:
-        self._uow = uow
-        self._presenter = presenter
+@dataclass(frozen=True, slots=True)
+class DeleteAccountInteractor(DeleteAccountInputPort):
+    uow: UnitOfWork
+    presenter: DeleteAccountOutputPort
 
-    async def execute(self, request: DeleteAccountRequest) -> None:
+    async def execute(self, data: DeleteAccountInput) -> None:
+        owner = OwnerId(data.owner_id)
         try:
-            owner_id = OwnerId(request.owner_id)
-            account_id = AccountId(request.account_id)
-        except ValueError:
-            self._presenter.present_account_not_found()
-            return
-
-        account = await self._uow.accounts.get(owner_id, account_id)
-        if not account:
-            self._presenter.present_account_not_found()
-            return
-
-        if await self._uow.account_usage.in_use(owner_id, account):
-            self._presenter.present_account_in_use()
-            return
-
-        try:
-            await self._uow.accounts.remove(account)
-            await self._uow.commit()
-            self._presenter.present_success()
+            async with self.uow:
+                account = await self.uow.accounts.get(owner, AccountId(data.account_id))
+                if account is None:
+                    self.presenter.present_not_found()
+                    return
+                if await self.uow.account_usage.in_use(owner, account):
+                    self.presenter.present_in_use()
+                    return
+                await self.uow.accounts.remove(account)
+                await self.uow.commit()
         except AccountInUseError:
-            self._presenter.present_account_in_use()
+            self.presenter.present_in_use()
+            return
+
+        self.presenter.present_deleted()

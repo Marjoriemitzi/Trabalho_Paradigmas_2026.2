@@ -4,9 +4,11 @@ from app.finance.presentation.api.v1.controllers.accounts_controllers import (
     CreateAccountController,
     CreateAccountFactory,
     DeleteAccountController,
+    DeleteAccountFactory,
     ListAccountsController,
     ListAccountsFactory,
     RenameAccountController,
+    RenameAccountFactory,
 )
 from app.finance.presentation.api.v1.controllers.categories_controller import (
     ListCategoriesController,
@@ -79,9 +81,11 @@ def get_delete_transfer_controller(request: Request) -> DeleteTransferController
     return DeleteTransferController(factory)
 
 
-def get_rename_account_controller(request: Request) -> "RenameAccountController":
-    return request.app.state.rename_account_factory()
+def get_rename_account_controller(request: Request) -> RenameAccountController:
+    factory: RenameAccountFactory = request.app.state.rename_account
+    return RenameAccountController(factory)
 
 
-def get_delete_account_controller(request: Request) -> "DeleteAccountController":
-    return request.app.state.delete_account_factory()
+def get_delete_account_controller(request: Request) -> DeleteAccountController:
+    factory: DeleteAccountFactory = request.app.state.delete_account
+    return DeleteAccountController(factory)

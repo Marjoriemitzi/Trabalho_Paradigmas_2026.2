@@ -10,12 +10,14 @@ from app.finance.application.ports.transaction_check import TransactionCheck
 from app.finance.composition import (
     create_account_factory,
     create_transfer_factory,
+    delete_account_factory,
     delete_transaction_factory,
     delete_transfer_factory,
     get_statement_factory,
     list_accounts_factory,
     list_categories_factory,
     record_transaction_factory,
+    rename_account_factory,
     update_transaction_factory,
 )
 from app.finance.infrastructure.prolog.prolog_categorizer import PrologCategorizer
@@ -99,6 +101,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.get_statement = get_statement_factory(session_factory)
         app.state.create_account = create_account_factory(session_factory)
         app.state.list_accounts = list_accounts_factory(session_factory)
+        app.state.rename_account = rename_account_factory(session_factory)
+        app.state.delete_account = delete_account_factory(session_factory)
         app.state.list_categories = list_categories_factory(session_factory)
         yield
         await engine.dispose()

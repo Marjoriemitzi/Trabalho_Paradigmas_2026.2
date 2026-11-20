@@ -11,6 +11,11 @@ from app.finance.application.use_cases.create_transfer import (
     CreateTransferInteractor,
     CreateTransferOutputPort,
 )
+from app.finance.application.use_cases.delete_account import (
+    DeleteAccountInputPort,
+    DeleteAccountInteractor,
+    DeleteAccountOutputPort,
+)
 from app.finance.application.use_cases.delete_transaction import (
     DeleteTransactionInputPort,
     DeleteTransactionInteractor,
@@ -41,6 +46,11 @@ from app.finance.application.use_cases.record_transaction import (
     RecordTransactionInteractor,
     RecordTransactionOutputPort,
 )
+from app.finance.application.use_cases.rename_account import (
+    RenameAccountInputPort,
+    RenameAccountInteractor,
+    RenameAccountOutputPort,
+)
 from app.finance.application.use_cases.update_transaction import (
     UpdateTransactionInputPort,
     UpdateTransactionInteractor,
@@ -50,7 +60,9 @@ from app.finance.domain.services.categorizer import Categorizer
 from app.finance.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from app.finance.presentation.api.v1.controllers.accounts_controllers import (
     CreateAccountFactory,
+    DeleteAccountFactory,
     ListAccountsFactory,
+    RenameAccountFactory,
 )
 from app.finance.presentation.api.v1.controllers.categories_controller import (
     ListCategoriesFactory,
@@ -180,39 +192,23 @@ def delete_transfer_factory(
     return build
 
 
-def rename_account_factory(session_factory):
-    from app.finance.application.use_cases.rename_account import RenameAccountInteractor
-    from app.finance.presentation.api.v1.controllers.accounts_controllers import (
-        RenameAccountController,
-    )
-    from app.finance.presentation.api.v1.presenters.create_account_presenter import (
-        CreateAccountHttpPresenter,
-    )
-
-    def build() -> RenameAccountController:
-        presenter = CreateAccountHttpPresenter()
-        return RenameAccountController(
-            RenameAccountInteractor(SqlAlchemyUnitOfWork(session_factory), presenter),
-            presenter,
+def rename_account_factory(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> RenameAccountFactory:
+    def build(presenter: RenameAccountOutputPort) -> RenameAccountInputPort:
+        return RenameAccountInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
         )
 
     return build
 
 
-def delete_account_factory(session_factory):
-    from app.finance.application.use_cases.delete_account import DeleteAccountInteractor
-    from app.finance.presentation.api.v1.controllers.accounts_controllers import (
-        DeleteAccountController,
-    )
-    from app.finance.presentation.api.v1.presenters.delete_account_presenter import (
-        DeleteAccountHttpPresenter,
-    )
-
-    def build() -> DeleteAccountController:
-        presenter = DeleteAccountHttpPresenter()
-        return DeleteAccountController(
-            DeleteAccountInteractor(SqlAlchemyUnitOfWork(session_factory), presenter),
-            presenter,
+def delete_account_factory(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> DeleteAccountFactory:
+    def build(presenter: DeleteAccountOutputPort) -> DeleteAccountInputPort:
+        return DeleteAccountInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
         )
 
     return build

@@ -1,3 +1,4 @@
+from app.finance.application.ports.account_usage import AccountUsage
 from app.finance.application.ports.spending_reader import SpendingReader
 from app.finance.domain.repositories.account_repository import AccountRepository
 from app.finance.domain.repositories.category_catalog import CategoryCatalog
@@ -7,6 +8,9 @@ from app.finance.domain.repositories.transaction_repository import (
 from app.finance.domain.repositories.transfer_repository import TransferRepository
 from app.finance.infrastructure.persistence.repositories.sql_account_repository import (
     SqlAccountRepository,
+)
+from app.finance.infrastructure.persistence.repositories.sql_account_usage import (
+    SqlAccountUsage,
 )
 from app.finance.infrastructure.persistence.repositories.sql_category_catalog import (
     SqlCategoryCatalog,
@@ -31,6 +35,10 @@ class SqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
         return SqlAccountRepository(self._open_session())
 
     @property
+    def account_usage(self) -> AccountUsage:
+        return SqlAccountUsage(self._open_session())
+
+    @property
     def categories(self) -> CategoryCatalog:
         return SqlCategoryCatalog(self._open_session())
 
@@ -45,7 +53,3 @@ class SqlAlchemyUnitOfWork(BaseSqlAlchemyUnitOfWork):
     @property
     def transfers(self) -> TransferRepository:
         return SqlTransferRepository(self._open_session())
-
-    @property
-    def account_usage(self) -> AccountUsage:
-        return SqlAccountUsage(self._open_session())
