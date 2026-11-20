@@ -31,6 +31,7 @@ from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.shared.presentation.api.middleware import CacheControlMiddleware
 from app.users.composition import (
     authenticate_user_factory,
+    change_password_factory,
     get_current_user_factory,
     register_user_factory,
 )
@@ -55,11 +56,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session_factory = async_sessionmaker(engine, expire_on_commit=False)
         prolog = PrologGateway()
         hasher = Argon2Hasher()
+        policy = PrologPasswordPolicy(prolog, settings.prolog_rules_dir)
 
         app.state.register_user = register_user_factory(
             session_factory=session_factory,
             hasher=hasher,
-            policy=PrologPasswordPolicy(prolog, settings.prolog_rules_dir),
+            policy=policy,
+        )
+        app.state.change_password = change_password_factory(
+            session_factory=session_factory, hasher=hasher, policy=policy
         )
         jwt_secret = settings.jwt_secret.get_secret_value()
 

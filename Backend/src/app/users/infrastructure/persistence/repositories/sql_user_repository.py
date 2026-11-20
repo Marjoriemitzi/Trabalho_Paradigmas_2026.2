@@ -40,3 +40,9 @@ class SqlUserRepository:
     async def get_by_id(self, user_id: UserId) -> User | None:
         modelo = await self._session.get(UserModel, user_id.value)
         return None if modelo is None else to_entity(modelo)
+
+    async def update_password(self, user: User) -> None:
+        modelo = await self._session.get(UserModel, user.id.value)
+        if modelo is not None:
+            modelo.password_hash = user.password_hash.value
+            await self._session.flush()

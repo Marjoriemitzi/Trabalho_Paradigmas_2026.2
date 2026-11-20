@@ -4,6 +4,10 @@ from app.users.presentation.api.v1.controllers.authenticate_user_controller impo
     AuthenticateUserController,
     AuthenticateUserFactory,
 )
+from app.users.presentation.api.v1.controllers.change_password_controller import (
+    ChangePasswordController,
+    ChangePasswordFactory,
+)
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserController,
     GetCurrentUserFactory,
@@ -27,3 +31,8 @@ def get_authenticate_user_controller(request: Request) -> AuthenticateUserContro
 def get_current_user_controller(request: Request) -> GetCurrentUserController:
     factory: GetCurrentUserFactory = request.app.state.get_current_user
     return GetCurrentUserController(factory)
+
+
+def get_change_password_controller(request: Request) -> ChangePasswordController:
+    factory: ChangePasswordFactory = request.app.state.change_password
+    return ChangePasswordController(factory)
