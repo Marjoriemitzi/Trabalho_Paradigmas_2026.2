@@ -1,12 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.finance.application.ports.transaction_check import TransactionCheck
 from app.finance.composition import (
     create_account_factory,
     create_transfer_factory,
@@ -57,6 +57,9 @@ from app.users.infrastructure.security.secrets_refresh_token_generator import (
 )
 from app.users.infrastructure.system_clock import SystemClock
 from app.users.presentation.api.v1.routers import auth, users
+
+if TYPE_CHECKING:
+    from app.finance.application.ports.transaction_check import TransactionCheck
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

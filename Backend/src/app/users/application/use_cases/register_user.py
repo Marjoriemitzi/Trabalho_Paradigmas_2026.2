@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.attempts import AttemptGuard
 from app.users.application.dtos.register_user import RegisteredUser, RegisterUserInput
@@ -25,7 +26,7 @@ class RegisterUserOutputPort(Protocol):
 
     def present_email_taken(self, email: str) -> None: ...
 
-    def present_weak_password(self, reasons: list[str]) -> None: ...
+    def present_weak_password(self, reasons: Sequence[str]) -> None: ...
 
     def present_invalid_email(self, email: str) -> None: ...
 
@@ -40,6 +41,7 @@ class RegisterUserInteractor(RegisterUserInputPort):
     attempts: AttemptGuard
     presenter: RegisterUserOutputPort
 
+    @override
     async def execute(self, data: RegisterUserInput) -> None:
         regras = self.attempts.register_rules(data.client_ip)
         espera = await self.attempts.retry_after(regras)

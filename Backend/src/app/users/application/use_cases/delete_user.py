@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.dtos.delete_user import DeleteUserInput
 from app.users.application.ports.password_hasher import PasswordHasher
@@ -25,6 +25,7 @@ class DeleteUserInteractor(DeleteUserInputPort):
     hasher: PasswordHasher
     presenter: DeleteUserOutputPort
 
+    @override
     async def execute(self, data: DeleteUserInput) -> None:
         async with self.uow:
             user = await self.uow.users.get_by_id(data.user_id)

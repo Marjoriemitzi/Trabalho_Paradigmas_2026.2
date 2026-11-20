@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.delete_account import DeleteAccountInput
 from app.finance.application.ports.unit_of_work import UnitOfWork
@@ -25,6 +25,7 @@ class DeleteAccountInteractor(DeleteAccountInputPort):
     uow: UnitOfWork
     presenter: DeleteAccountOutputPort
 
+    @override
     async def execute(self, data: DeleteAccountInput) -> None:
         owner = OwnerId(data.owner_id)
         try:

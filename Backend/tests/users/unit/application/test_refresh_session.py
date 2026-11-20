@@ -56,7 +56,8 @@ async def test_a_rotacao_devolve_um_par_novo_na_mesma_familia() -> None:
     novo_gravado = await c.uow.refresh_tokens.get_by_hash(
         hash_refresh_token(resultado.session.refresh_token)
     )
-    assert antigo_gravado is not None and novo_gravado is not None
+    assert antigo_gravado is not None
+    assert novo_gravado is not None
     assert antigo_gravado.used_at == c.clock.now()
     assert novo_gravado.family_id == antigo_gravado.family_id
     assert c.uow.committed is True
@@ -104,7 +105,8 @@ async def test_token_vencido_e_invalido_e_nao_e_marcado_como_usado() -> None:
 
     assert resultado.invalid is True
     gravado = await c.uow.refresh_tokens.get_by_hash(hash_refresh_token(antigo))
-    assert gravado is not None and gravado.used_at is None
+    assert gravado is not None
+    assert gravado.used_at is None
 
 
 async def test_token_revogado_e_invalido() -> None:

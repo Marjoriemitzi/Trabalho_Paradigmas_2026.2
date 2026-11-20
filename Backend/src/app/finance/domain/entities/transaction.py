@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Self
+from typing import Self, override
 
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.category import Category
@@ -60,8 +60,10 @@ class Transaction:
         self.category = category
         self.occurred_on = occurred_on
 
+    @override
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Transaction) and other.id == self.id
 
+    @override
     def __hash__(self) -> int:
         return hash(self.id)

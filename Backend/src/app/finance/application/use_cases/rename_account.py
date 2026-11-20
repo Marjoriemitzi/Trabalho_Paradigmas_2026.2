@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.create_account import AccountOutput
 from app.finance.application.dtos.rename_account import RenameAccountInput
@@ -30,6 +30,7 @@ class RenameAccountInteractor(RenameAccountInputPort):
     uow: UnitOfWork
     presenter: RenameAccountOutputPort
 
+    @override
     async def execute(self, data: RenameAccountInput) -> None:
         try:
             name = read_field("name", AccountName, data.name)

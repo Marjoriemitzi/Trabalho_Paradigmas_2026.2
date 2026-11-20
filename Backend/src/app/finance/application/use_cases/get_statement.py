@@ -1,17 +1,19 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol, override
 
 from app.finance.application.dtos.get_statement import (
     GetStatementInput,
     StatementOutput,
 )
 from app.finance.application.ports.unit_of_work import UnitOfWork
-from app.finance.domain.entities.transfer import Transfer
 from app.finance.domain.exceptions import InvalidValueError
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
 from app.finance.domain.value_objects.statement import Statement
+
+if TYPE_CHECKING:
+    from app.finance.domain.entities.transfer import Transfer
 
 
 class GetStatementInputPort(Protocol):
@@ -31,6 +33,7 @@ class GetStatementInteractor(GetStatementInputPort):
     uow: UnitOfWork
     presenter: GetStatementOutputPort
 
+    @override
     async def execute(self, data: GetStatementInput) -> None:
         try:
             period = Period(data.start, data.end)

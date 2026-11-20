@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.transfers import CreateTransferInput, TransferOutput
 from app.finance.application.fields import InvalidFieldError
@@ -27,6 +27,7 @@ class CreateTransferInteractor(CreateTransferInputPort):
     uow: UnitOfWork
     presenter: CreateTransferOutputPort
 
+    @override
     async def execute(self, data: CreateTransferInput) -> None:
         try:
             campos = read_transfer_fields(

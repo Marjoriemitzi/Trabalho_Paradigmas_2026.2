@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.dtos.refresh_session import RefreshSessionInput
 from app.users.application.ports.clock import Clock
@@ -24,6 +24,7 @@ class RefreshSessionInteractor(RefreshSessionInputPort):
     clock: Clock
     presenter: RefreshSessionOutputPort
 
+    @override
     async def execute(self, data: RefreshSessionInput) -> None:
         session = await self._rotate(data.refresh_token)
         if session is None:

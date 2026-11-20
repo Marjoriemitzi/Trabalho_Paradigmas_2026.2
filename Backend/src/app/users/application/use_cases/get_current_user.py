@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.dtos.get_current_user import UserProfile
 from app.users.application.ports.token_verifier import AuthenticatedUser
@@ -21,6 +21,7 @@ class GetCurrentUserInteractor(GetCurrentUserInputPort):
     uow: UnitOfWork
     presenter: GetCurrentUserOutputPort
 
+    @override
     async def execute(self, current: AuthenticatedUser) -> None:
         async with self.uow:
             user = await self.uow.users.get_by_id(current.id)

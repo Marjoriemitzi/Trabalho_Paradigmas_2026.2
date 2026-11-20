@@ -1,9 +1,9 @@
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.finance.application.ports.unit_of_work import UnitOfWork
 from app.finance.domain.entities.transaction import Transaction
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.category import Category
@@ -17,6 +17,9 @@ from app.finance.infrastructure.persistence.models.transaction_model import (
     TransactionModel,
 )
 from app.finance.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
+
+if TYPE_CHECKING:
+    from app.finance.application.ports.unit_of_work import UnitOfWork
 
 Fabrica = async_sessionmaker[AsyncSession]
 

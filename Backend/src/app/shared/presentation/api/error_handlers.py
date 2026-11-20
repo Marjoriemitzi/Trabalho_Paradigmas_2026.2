@@ -1,7 +1,7 @@
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from http import HTTPStatus
-from typing import Any
+from typing import TypedDict
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -15,9 +15,16 @@ def _code_for_status(status_code: int) -> str:
     return re.sub(r"[^a-z]+", "_", HTTPStatus(status_code).phrase.lower())
 
 
-def _field_problem(error: Mapping[str, Any]) -> dict[str, str | None]:
-    problema: str = error["type"]
-    local: Sequence[str | int] = error["loc"]
+class _ValidationDetail(TypedDict):
+    """Só os campos que usamos de cada erro do pydantic (o dicionário traz mais)."""
+
+    type: str
+    loc: Sequence[str | int]
+
+
+def _field_problem(error: _ValidationDetail) -> dict[str, str | None]:
+    problema = error["type"]
+    local = error["loc"]
     campo = None if problema == "json_invalid" else ".".join(map(str, local[1:]))
     return {"field": campo or None, "problem": problema}
 

@@ -1,7 +1,10 @@
-import uuid
+from typing import TYPE_CHECKING
 
 from app.users.application.ports.token_verifier import AuthenticatedUser
 from tests.users.fakes.fake_user_repository import FakeUserRepository
+
+if TYPE_CHECKING:
+    import uuid
 
 
 class FakeAccessTokenCheck:

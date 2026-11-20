@@ -1,6 +1,10 @@
-from app.users.application.ports.password_hasher import PasswordHasher
+from typing import TYPE_CHECKING
+
 from app.users.domain.value_objects.password import PasswordHash, RawPassword
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
+
+if TYPE_CHECKING:
+    from app.users.application.ports.password_hasher import PasswordHasher
 
 
 async def test_gera_um_hash_previsivel() -> None:

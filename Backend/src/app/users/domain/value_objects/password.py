@@ -6,7 +6,7 @@ class RawPassword:
     _secret: str = field(repr=False)
 
     def __post_init__(self) -> None:
-        if not self._secret:
+        if self._secret == "":
             raise ValueError("A senha não pode ser vazia.")
 
     def reveal(self) -> str:
@@ -18,5 +18,5 @@ class PasswordHash:
     value: str = field(repr=False)
 
     def __post_init__(self) -> None:
-        if not self.value:
+        if self.value == "":
             raise ValueError("O hash não pode ser vazio.")

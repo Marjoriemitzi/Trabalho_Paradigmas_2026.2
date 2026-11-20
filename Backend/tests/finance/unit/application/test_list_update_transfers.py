@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import date
 
@@ -141,24 +142,34 @@ async def test_corrigir_troca_os_campos_grava_e_apresenta() -> None:
 
 
 @pytest.mark.parametrize(
-    ("mudanca", "esperado"),
+    ("mudar", "esperado"),
     [
-        ({"amount_cents": 0}, ("amount_cents", "not_positive")),
-        ({"description": "  "}, ("description", "blank")),
-        ({"to_account_id": CORRENTE.id.value}, ("to_account_id", "same_account")),
-        ({"to_account_id": DA_BIA.id.value}, ("to_account_id", "not_found")),
-        ({"from_account_id": uuid.uuid4()}, ("from_account_id", "not_found")),
+        (lambda c: replace(c, amount_cents=0), ("amount_cents", "not_positive")),
+        (lambda c: replace(c, description="  "), ("description", "blank")),
+        (
+            lambda c: replace(c, to_account_id=CORRENTE.id.value),
+            ("to_account_id", "same_account"),
+        ),
+        (
+            lambda c: replace(c, to_account_id=DA_BIA.id.value),
+            ("to_account_id", "not_found"),
+        ),
+        (
+            lambda c: replace(c, from_account_id=uuid.uuid4()),
+            ("from_account_id", "not_found"),
+        ),
     ],
 )
 async def test_correcao_recusada_diz_qual_campo_foi_e_nao_grava(
-    mudanca: dict[str, object], esperado: tuple[str, str]
+    mudar: Callable[[UpdateTransferInput], UpdateTransferInput],
+    esperado: tuple[str, str],
 ) -> None:
     uow, transfer_id = await montar()
     uow.committed = False
     presenter = UpdateTransferPresenterSpy()
 
     await UpdateTransferInteractor(uow=uow, presenter=presenter).execute(
-        replace(correcao(transfer_id), **mudanca)  # type: ignore[arg-type]
+        mudar(correcao(transfer_id))
     )
 
     assert presenter.invalid == esperado

@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -16,10 +18,12 @@ class CreateAccountHttpPresenter(CreateAccountOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_created(self, account: AccountOutput) -> None:
         corpo = AccountResponse.from_output(account).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_201_CREATED)
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -27,5 +31,6 @@ class CreateAccountHttpPresenter(CreateAccountOutputPort):
             fields=[{"field": field, "problem": problem}],
         )
 
-    def present_name_taken(self, name: str) -> None:
+    @override
+    def present_name_taken(self, _name: str) -> None:
         self._response = error_response(status.HTTP_409_CONFLICT, "account_name_taken")

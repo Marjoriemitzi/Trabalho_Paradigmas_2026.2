@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import override
+
 from fastapi import Response, status
 
 from app.shared.presentation.api.errors import error_response
@@ -14,18 +17,22 @@ class ChangePasswordHttpPresenter(ChangePasswordOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_changed(self) -> None:
         self._response = Response(status_code=status.HTTP_204_NO_CONTENT)
 
+    @override
     def present_invalid_current_password(self) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_current_password"
         )
 
-    def present_weak_password(self, reasons: list[str]) -> None:
+    @override
+    def present_weak_password(self, reasons: Sequence[str]) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "weak_password", reasons=reasons
         )
 
+    @override
     def present_user_not_found(self) -> None:
         raise invalid_token()

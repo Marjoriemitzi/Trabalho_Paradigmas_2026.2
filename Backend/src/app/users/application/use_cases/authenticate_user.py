@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.attempts import AttemptGuard
 from app.users.application.dtos.authenticate_user import AuthenticateUserInput
@@ -32,6 +32,7 @@ class AuthenticateUserInteractor(AuthenticateUserInputPort):
     attempts: AttemptGuard
     presenter: AuthenticateUserOutputPort
 
+    @override
     async def execute(self, data: AuthenticateUserInput) -> None:
         par, so_ip = self.attempts.login_rules(data.client_ip, data.email)
         espera = await self.attempts.retry_after((par, so_ip))
@@ -48,7 +49,7 @@ class AuthenticateUserInteractor(AuthenticateUserInputPort):
         self.presenter.present_authenticated(session)
 
     async def _authenticate(self, data: AuthenticateUserInput) -> Session | None:
-        if not data.password:
+        if data.password == "":
             return None
         try:
             email = Email(data.email)

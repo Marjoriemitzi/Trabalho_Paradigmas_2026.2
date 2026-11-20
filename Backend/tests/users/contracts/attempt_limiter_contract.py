@@ -2,16 +2,20 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.users.application.ports.attempt_limiter import AttemptLimiter, AttemptRule
+from app.users.application.ports.attempt_limiter import (
+    AttemptLimiter,
+    AttemptRule,
+    AttemptScope,
+)
 
 AGORA = datetime(2026, 11, 20, 12, 7, 30, tzinfo=UTC)
 JANELA = timedelta(minutes=15)
 
 
 def regra(
-    chave: str = "a" * 64, limite: int = 3, scope: str = "login_pair"
+    chave: str = "a" * 64, limite: int = 3, scope: AttemptScope = "login_pair"
 ) -> AttemptRule:
-    return AttemptRule(scope, chave, limite, JANELA)  # type: ignore[arg-type]
+    return AttemptRule(scope, chave, limite, JANELA)
 
 
 class AttemptLimiterContract:

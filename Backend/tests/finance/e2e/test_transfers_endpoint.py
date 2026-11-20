@@ -43,7 +43,7 @@ def token(pessoa: uuid.UUID) -> dict[str, str]:
     return {"Authorization": f"Bearer token-falso:{pessoa}"}
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Api:
     client: AsyncClient
     uow: FakeUnitOfWork

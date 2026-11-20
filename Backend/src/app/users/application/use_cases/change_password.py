@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.dtos.change_password import ChangePasswordInput
 from app.users.application.ports.password_hasher import PasswordHasher
@@ -18,7 +19,7 @@ class ChangePasswordOutputPort(Protocol):
 
     def present_invalid_current_password(self) -> None: ...
 
-    def present_weak_password(self, reasons: list[str]) -> None: ...
+    def present_weak_password(self, reasons: Sequence[str]) -> None: ...
 
     def present_user_not_found(self) -> None: ...
 
@@ -30,6 +31,7 @@ class ChangePasswordInteractor(ChangePasswordInputPort):
     policy: PasswordPolicy
     presenter: ChangePasswordOutputPort
 
+    @override
     async def execute(self, data: ChangePasswordInput) -> None:
         async with self.uow:
             user = await self.uow.users.get_by_id(data.user_id)

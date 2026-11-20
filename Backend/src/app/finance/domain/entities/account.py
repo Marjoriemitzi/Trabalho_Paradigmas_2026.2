@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import Self, override
 
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.account_kind import AccountKind
@@ -21,8 +21,10 @@ class Account:
     def rename(self, name: AccountName) -> None:
         self.name = name
 
+    @override
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Account) and other.id == self.id
 
+    @override
     def __hash__(self) -> int:
         return hash(self.id)
