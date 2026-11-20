@@ -8,6 +8,7 @@ from app.users.domain.value_objects.password import PasswordHash
 from app.users.domain.value_objects.user_id import UserId
 
 HASH = "$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"
+OUTRO_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$b3V0cm8"
 
 
 class UserRepositoryContract:
@@ -92,3 +93,82 @@ class UserRepositoryContract:
 
         assert encontrado is not None
         assert encontrado.email == bia.email
+
+    async def test_update_password_grava_o_hash_novo(
+        self, repository: UserRepository
+    ) -> None:
+        ana = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        await repository.add(ana)
+        ana.change_password(PasswordHash(OUTRO_HASH))
+
+        await repository.update_password(ana)
+
+        encontrada = await repository.get_by_id(ana.id)
+        assert encontrada is not None
+        assert encontrada.password_hash == PasswordHash(OUTRO_HASH)
+        assert encontrada.email == ana.email
+
+    async def test_update_password_nao_mexe_em_outro_usuario(
+        self, repository: UserRepository
+    ) -> None:
+        ana = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        bia = User.register(Email("bia@acme.com"), PasswordHash(HASH))
+        await repository.add(ana)
+        await repository.add(bia)
+        ana.change_password(PasswordHash(OUTRO_HASH))
+
+        await repository.update_password(ana)
+
+        encontrada = await repository.get_by_id(bia.id)
+        assert encontrada is not None
+        assert encontrada.password_hash == PasswordHash(HASH)
+
+    async def test_update_password_de_quem_nao_existe_nao_faz_nada(
+        self, repository: UserRepository
+    ) -> None:
+        fantasma = User.register(Email("fantasma@acme.com"), PasswordHash(HASH))
+
+        await repository.update_password(fantasma)
+
+        assert await repository.exists(Email("fantasma@acme.com")) is False
+
+    async def test_remove_apaga_o_usuario(self, repository: UserRepository) -> None:
+        ana = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        await repository.add(ana)
+
+        await repository.remove(ana)
+
+        assert await repository.get_by_id(ana.id) is None
+        assert await repository.exists(Email("ana@acme.com")) is False
+
+    async def test_remove_nao_mexe_em_outro_usuario(
+        self, repository: UserRepository
+    ) -> None:
+        ana = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        bia = User.register(Email("bia@acme.com"), PasswordHash(HASH))
+        await repository.add(ana)
+        await repository.add(bia)
+
+        await repository.remove(ana)
+
+        assert await repository.get_by_id(bia.id) is not None
+
+    async def test_o_email_apagado_pode_ser_cadastrado_de_novo(
+        self, repository: UserRepository
+    ) -> None:
+        ana = User.register(Email("ana@acme.com"), PasswordHash(HASH))
+        await repository.add(ana)
+        await repository.remove(ana)
+
+        await repository.add(User.register(Email("ana@acme.com"), PasswordHash(HASH)))
+
+        assert await repository.exists(Email("ana@acme.com")) is True
+
+    async def test_remove_de_quem_nao_existe_nao_faz_nada(
+        self, repository: UserRepository
+    ) -> None:
+        fantasma = User.register(Email("fantasma@acme.com"), PasswordHash(HASH))
+
+        await repository.remove(fantasma)
+
+        assert await repository.get_by_id(fantasma.id) is None

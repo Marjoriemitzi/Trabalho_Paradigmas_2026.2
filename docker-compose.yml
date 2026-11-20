@@ -9,7 +9,10 @@ x-app-env: &app-env
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   ENABLE_DOCS: ${ENABLE_DOCS:-false}
   JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
-  JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-30}
+  JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-15}
+  REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-30}
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
   COVERAGE_FILE: /tmp/.coverage
   PYTEST_ADDOPTS: -p no:cacheprovider
   RUFF_CACHE_DIR: /tmp/.ruff_cache
@@ -23,7 +26,7 @@ services:
     build:
       context: ./Backend
       target: dev
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --proxy-headers --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-}"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
     read_only: true
     tmpfs:
       - /tmp

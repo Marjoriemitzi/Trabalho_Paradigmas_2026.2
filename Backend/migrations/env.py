@@ -13,6 +13,9 @@ from app.finance.infrastructure.persistence.models import account_model
 from app.finance.infrastructure.persistence.models import category_model
 from app.finance.infrastructure.persistence.models import transaction_model
 from app.finance.infrastructure.persistence.models import transfer_model
+from app.users.infrastructure.persistence.models import auth_attempt_model
+from app.users.infrastructure.persistence.models import refresh_token_model
+from app.users.infrastructure.persistence.models import revoked_token_model
 from app.users.infrastructure.persistence.models import user_model
 
 config = context.config

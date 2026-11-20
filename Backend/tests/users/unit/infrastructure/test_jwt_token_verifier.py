@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -29,6 +30,7 @@ def test_aceita_o_token_que_o_emissor_gerou() -> None:
     assert autenticado is not None
     assert autenticado.id == USUARIO.id
     assert autenticado.role is Role.USER
+    assert autenticado.expires_at > datetime.now(UTC)
 
 
 def test_recusa_token_expirado() -> None:
@@ -63,7 +65,9 @@ def test_recusa_token_sem_assinatura() -> None:
 
 def test_recusa_token_sem_prazo_de_validade() -> None:
     eterno = jwt.encode(
-        {"sub": str(USUARIO.id.value), "role": "user"}, SEGREDO, algorithm="HS256"
+        {"sub": str(USUARIO.id.value), "role": "user", "jti": str(uuid.uuid4())},
+        SEGREDO,
+        algorithm="HS256",
     )
 
     assert verificador().verify(eterno) is None
@@ -71,7 +75,12 @@ def test_recusa_token_sem_prazo_de_validade() -> None:
 
 def assinar(claims: dict[str, object]) -> str:
     agora = datetime.now(UTC)
-    completo = {"iat": agora, "exp": agora + timedelta(minutes=30), **claims}
+    completo = {
+        "iat": agora,
+        "exp": agora + timedelta(minutes=30),
+        "jti": str(uuid.uuid4()),
+        **claims,
+    }
     return jwt.encode(completo, SEGREDO, algorithm="HS256")
 
 
@@ -81,5 +90,37 @@ def test_recusa_token_cujo_dono_nao_e_um_id_valido() -> None:
 
 def test_recusa_token_com_papel_que_nao_existe() -> None:
     token = assinar({"sub": str(USUARIO.id.value), "role": "superuser"})
+
+    assert verificador().verify(token) is None
+
+
+def test_devolve_o_jti_do_token() -> None:
+    jti = uuid.uuid4()
+    token = assinar({"sub": str(USUARIO.id.value), "role": "user", "jti": str(jti)})
+
+    autenticado = verificador().verify(token)
+
+    assert autenticado is not None
+    assert autenticado.jti == jti
+
+
+def test_recusa_token_sem_jti() -> None:
+    agora = datetime.now(UTC)
+    sem_jti = jwt.encode(
+        {
+            "sub": str(USUARIO.id.value),
+            "role": "user",
+            "iat": agora,
+            "exp": agora + timedelta(minutes=30),
+        },
+        SEGREDO,
+        algorithm="HS256",
+    )
+
+    assert verificador().verify(sem_jti) is None
+
+
+def test_recusa_token_com_jti_que_nao_e_uuid() -> None:
+    token = assinar({"sub": str(USUARIO.id.value), "role": "user", "jti": "abc"})
 
     assert verificador().verify(token) is None

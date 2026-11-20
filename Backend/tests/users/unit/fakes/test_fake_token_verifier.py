@@ -16,6 +16,7 @@ def test_aceita_o_token_do_emissor_falso() -> None:
     assert autenticado is not None
     assert autenticado.id == user.id
     assert autenticado.role is Role.USER
+    assert autenticado.jti == user.id.value
 
 
 def test_recusa_qualquer_outro_texto() -> None:

@@ -30,6 +30,46 @@ Na primeira subida, o banco cria sozinho o usuário da aplicação (`Backend/db/
 A API fica em http://127.0.0.1:8000. A documentação fica em `/docs` quando `ENABLE_DOCS=true`
 no `.env`.
 
+## CORS
+
+`CORS_ORIGINS` (no `.env`) lista as origens do frontend, separadas por vírgula, com esquema e sem
+barra no fim (`http://localhost:8001,http://127.0.0.1:8001`). Vazio, o CORS fica desligado.
+`*` é recusado.
+
+O token vai no cabeçalho `Authorization`, então `allow_credentials` fica `False`. Limitação: respostas
+`500` geradas pelo `ServerErrorMiddleware` do Starlette ficam fora do `CORSMiddleware` e não levam os
+cabeçalhos de CORS; o navegador mostra isso como erro de CORS, mas a causa é o erro `500`.
+
+## Sessão (access e refresh token)
+
+`POST /api/v1/auth/login` devolve um access token curto (`JWT_EXPIRES_MINUTES`, padrão 15) e um
+refresh token opaco (`REFRESH_TOKEN_DAYS`, padrão 30). O banco guarda só o hash SHA-256 do refresh
+token.
+
+- `POST /api/v1/auth/refresh` troca o refresh token por um par novo (rotação). Apresentar um
+  refresh token já usado revoga a sessão inteira e responde `401 invalid_refresh_token`.
+- `POST /api/v1/auth/logout` revoga a sessão do refresh token enviado e é idempotente (`204`).
+- O access token já emitido vale até vencer (no máximo `JWT_EXPIRES_MINUTES`), a menos que o logout
+  venha com `Authorization: Bearer <access token>`: aí o `jti` dele entra na lista de bloqueio
+  (`revoked_tokens`) e `require_authenticated_user` o recusa em todas as rotas. Todo access token
+  leva `jti`; tokens sem ele são recusados.
+
+## Limite de tentativas
+
+`POST /api/v1/auth/login` e `POST /api/v1/users` respondem `429 too_many_attempts` com o cabeçalho
+`Retry-After` (segundos) quando passam do limite, numa janela fixa:
+
+| Regra | Padrão | Variável (`Settings`) |
+| --- | --- | --- |
+| falhas de login por (IP, e-mail) | 5 em 15 min | `LOGIN_PAIR_MAX_FAILURES`, `LOGIN_WINDOW_MINUTES` |
+| falhas de login por IP | 50 em 15 min | `LOGIN_IP_MAX_FAILURES` |
+| cadastros por IP | 5 em 60 min | `REGISTER_IP_MAX`, `REGISTER_WINDOW_MINUTES` |
+
+Um login certo zera a contagem do par. As contagens ficam na tabela `auth_attempts` (só o hash da
+chave). O IP é sempre `request.client.host`: atrás de proxy, o uvicorn só o troca pelo de
+`X-Forwarded-For` se o proxy estiver em `FORWARDED_ALLOW_IPS` (vazio no compose = nenhum). A
+aplicação nunca lê o cabeçalho direto.
+
 ## Dia a dia
 
 ```bash

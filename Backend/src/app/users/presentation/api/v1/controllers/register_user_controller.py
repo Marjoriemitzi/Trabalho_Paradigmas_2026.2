@@ -19,7 +19,9 @@ RegisterUserFactory = Callable[[RegisterUserOutputPort], RegisterUserInputPort]
 class RegisterUserController:
     build_interactor: RegisterUserFactory
 
-    async def handle(self, request: RegisterUserRequest) -> JSONResponse:
+    async def handle(
+        self, request: RegisterUserRequest, client_ip: str
+    ) -> JSONResponse:
         presenter = RegisterUserHttpPresenter()
-        await self.build_interactor(presenter).execute(request.to_input())
+        await self.build_interactor(presenter).execute(request.to_input(client_ip))
         return presenter.response()

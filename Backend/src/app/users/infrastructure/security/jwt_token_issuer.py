@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
@@ -27,6 +28,7 @@ class JwtTokenIssuer:
         claims = {
             "sub": str(user.id.value),
             "role": user.role.value,
+            "jti": str(uuid.uuid4()),
             "iat": agora,
             "exp": agora + self._expires_in,
         }

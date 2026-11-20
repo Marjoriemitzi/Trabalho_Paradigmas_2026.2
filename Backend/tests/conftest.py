@@ -57,11 +57,16 @@ async def session(
         yield session
 
 
+def ip_do_teste() -> str:
+    """Um IP só deste teste, para o limite de tentativas não juntar os testes reais."""
+    return "10." + ".".join(str(b) for b in uuid.uuid4().bytes[:3])
+
+
 @pytest.fixture
 async def real_client(migrated_database: str) -> AsyncIterator[AsyncClient]:
     app = create_app()
     async with app.router.lifespan_context(app):
-        transport = ASGITransport(app=app)
+        transport = ASGITransport(app=app, client=(ip_do_teste(), 5000))
         async with AsyncClient(transport=transport, base_url="http://teste") as client:
             yield client
 

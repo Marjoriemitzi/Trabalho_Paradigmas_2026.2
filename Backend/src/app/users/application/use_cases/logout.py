@@ -1,31 +1,39 @@
-import hashlib
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import Protocol
 
+from app.users.application.dtos.refresh_session import LogoutInput
+from app.users.application.ports.clock import Clock
 from app.users.application.ports.unit_of_work import UnitOfWork
+from app.users.application.session import hash_refresh_token
 
 
-@dataclass(frozen=True, slots=True)
-class LogoutRequest:
-    refresh_token: str
+class LogoutInputPort(Protocol):
+    async def execute(self, data: LogoutInput) -> None: ...
 
 
 class LogoutOutputPort(Protocol):
-    def present_success(self) -> None: ...
+    def present_logged_out(self) -> None: ...
 
 
-class LogoutInteractor:
-    def __init__(self, uow: UnitOfWork, presenter: LogoutOutputPort) -> None:
-        self._uow = uow
-        self._presenter = presenter
+@dataclass(frozen=True, slots=True)
+class LogoutInteractor(LogoutInputPort):
+    uow: UnitOfWork
+    clock: Clock
+    presenter: LogoutOutputPort
 
-    async def execute(self, request: LogoutRequest) -> None:
-        token_hash = hashlib.sha256(request.refresh_token.encode()).hexdigest()
-        now = datetime.now(UTC)
-        stored = await self._uow.refresh_tokens.get_by_hash(token_hash)
-        if stored and not stored["revoked_at"]:
-            await self._uow.refresh_tokens.revoke_family(stored["family_id"], now)
-        await self._uow.refresh_tokens.delete_expired(now)
-        await self._uow.commit()
-        self._presenter.present_success()
+    async def execute(self, data: LogoutInput) -> None:
+        agora = self.clock.now()
+        async with self.uow:
+            token = await self.uow.refresh_tokens.get_by_hash(
+                hash_refresh_token(data.refresh_token)
+            )
+            if token is not None:
+                await self.uow.refresh_tokens.revoke_family(token.family_id, agora)
+            atual = data.current
+            if atual is not None and (token is None or token.user_id == atual.id):
+                await self.uow.token_blocklist.add(
+                    atual.jti, atual.id, atual.expires_at
+                )
+            await self.uow.token_blocklist.delete_expired(agora)
+            await self.uow.commit()
+        self.presenter.present_logged_out()
