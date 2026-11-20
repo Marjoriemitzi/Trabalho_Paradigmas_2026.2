@@ -11,9 +11,11 @@ class RegisterUserRequest(BaseModel):
     email: str
     password: SecretStr
 
-    def to_input(self) -> RegisterUserInput:
+    def to_input(self, client_ip: str) -> RegisterUserInput:
         return RegisterUserInput(
-            email=self.email, password=self.password.get_secret_value()
+            email=self.email,
+            password=self.password.get_secret_value(),
+            client_ip=client_ip,
         )
 
 

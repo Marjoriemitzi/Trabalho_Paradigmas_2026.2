@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 
+from app.users.presentation.api.v1.client_ip import client_ip
 from app.users.presentation.api.v1.controllers.authenticate_user_controller import (
     AuthenticateUserController,
 )
@@ -34,15 +35,19 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
     response_model=SessionResponse,
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": "E-mail ou senha incorretos"},
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Falhas demais; veja o cabeçalho Retry-After"
+        },
     },
 )
 async def login(
+    request: Request,
     body: AuthenticateUserRequest,
     controller: Annotated[
         AuthenticateUserController, Depends(get_authenticate_user_controller)
     ],
 ) -> JSONResponse:
-    return await controller.handle(body)
+    return await controller.handle(body, client_ip(request))
 
 
 @router.post(

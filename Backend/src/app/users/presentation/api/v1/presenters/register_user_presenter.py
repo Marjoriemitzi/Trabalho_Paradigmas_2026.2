@@ -32,3 +32,10 @@ class RegisterUserHttpPresenter(RegisterUserOutputPort):
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_email"
         )
+
+    def present_too_many_attempts(self, retry_after: int) -> None:
+        self._response = error_response(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "too_many_attempts",
+            headers={"Retry-After": str(retry_after)},
+        )

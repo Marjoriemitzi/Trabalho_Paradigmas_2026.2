@@ -4,6 +4,7 @@ from app.users.domain.entities.user import User
 from app.users.domain.exceptions import EmailAlreadyRegisteredError
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
+from tests.users.fakes.fake_attempt_guard import fake_attempt_guard
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
 from tests.users.fakes.fake_password_policy import FakePasswordPolicy
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
@@ -23,6 +24,7 @@ def montar(
         uow=uow,
         hasher=FakePasswordHasher(),
         policy=policy or FakePasswordPolicy(),
+        attempts=fake_attempt_guard(),
         presenter=presenter,
     )
     return interactor, uow, presenter

@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_expires_minutes: int = Field(default=15, gt=0)
     refresh_token_days: int = Field(default=30, gt=0)
+    login_pair_max_failures: int = Field(default=5, gt=0)
+    login_ip_max_failures: int = Field(default=50, gt=0)
+    login_window_minutes: int = Field(default=15, gt=0)
+    register_ip_max: int = Field(default=5, gt=0)
+    register_window_minutes: int = Field(default=60, gt=0)
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     @field_validator("cors_origins", mode="before")

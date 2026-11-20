@@ -14,6 +14,7 @@ from app.users.domain.entities.user import User
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from app.users.presentation.api.v1.routers.auth import router
+from tests.users.fakes.fake_attempt_guard import fake_attempt_guard
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
 from tests.users.fakes.fake_session_issuer import fake_session_issuer
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
@@ -35,6 +36,7 @@ async def client() -> AsyncIterator[AsyncClient]:
             uow=uow,
             hasher=FakePasswordHasher(),
             issuer=fake_session_issuer(),
+            attempts=fake_attempt_guard(),
             presenter=presenter,
         )
 

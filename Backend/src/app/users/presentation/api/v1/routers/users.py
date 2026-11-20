@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 
+from app.users.presentation.api.v1.client_ip import client_ip
 from app.users.presentation.api.v1.controllers.change_password_controller import (
     ChangePasswordController,
 )
@@ -43,18 +44,22 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
     response_model=RegisteredUserResponse,
     responses={
         status.HTTP_409_CONFLICT: {"description": "E-mail já cadastrado"},
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Cadastros demais deste IP; veja o cabeçalho Retry-After"
+        },
         status.HTTP_422_UNPROCESSABLE_CONTENT: {
             "description": "E-mail inválido, senha fraca ou pedido mal formado"
         },
     },
 )
 async def register_user(
+    request: Request,
     body: RegisterUserRequest,
     controller: Annotated[
         RegisterUserController, Depends(get_register_user_controller)
     ],
 ) -> JSONResponse:
-    return await controller.handle(body)
+    return await controller.handle(body, client_ip(request))
 
 
 @router.get(

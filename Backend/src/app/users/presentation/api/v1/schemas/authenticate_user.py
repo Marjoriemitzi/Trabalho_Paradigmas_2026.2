@@ -12,9 +12,11 @@ class AuthenticateUserRequest(BaseModel):
     email: str
     password: SecretStr
 
-    def to_input(self) -> AuthenticateUserInput:
+    def to_input(self, client_ip: str) -> AuthenticateUserInput:
         return AuthenticateUserInput(
-            email=self.email, password=self.password.get_secret_value()
+            email=self.email,
+            password=self.password.get_secret_value(),
+            client_ip=client_ip,
         )
 
 

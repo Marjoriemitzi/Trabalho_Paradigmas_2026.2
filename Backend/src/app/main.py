@@ -33,6 +33,7 @@ from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.shared.presentation.api.middleware import CacheControlMiddleware
+from app.users.application.attempts import AttemptGuard, AttemptLimits
 from app.users.application.session import SessionIssuer
 from app.users.composition import (
     authenticate_user_factory,
@@ -44,6 +45,7 @@ from app.users.composition import (
     register_user_factory,
 )
 from app.users.infrastructure.persistence.access_token_check import SqlAccessTokenCheck
+from app.users.infrastructure.persistence.sql_attempt_limiter import SqlAttemptLimiter
 from app.users.infrastructure.prolog.prolog_password_policy import (
     PrologPasswordPolicy,
 )
@@ -70,11 +72,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         prolog = PrologGateway()
         hasher = Argon2Hasher()
         policy = PrologPasswordPolicy(prolog, settings.prolog_rules_dir)
+        clock = SystemClock()
+        attempts = AttemptGuard(
+            limiter=SqlAttemptLimiter(session_factory),
+            clock=clock,
+            limits=AttemptLimits(
+                login_pair_max_failures=settings.login_pair_max_failures,
+                login_ip_max_failures=settings.login_ip_max_failures,
+                login_window=timedelta(minutes=settings.login_window_minutes),
+                register_ip_max=settings.register_ip_max,
+                register_window=timedelta(minutes=settings.register_window_minutes),
+            ),
+        )
 
         app.state.register_user = register_user_factory(
             session_factory=session_factory,
             hasher=hasher,
             policy=policy,
+            attempts=attempts,
         )
         app.state.change_password = change_password_factory(
             session_factory=session_factory, hasher=hasher, policy=policy
@@ -85,7 +100,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.access_token_check = SqlAccessTokenCheck(session_factory)
         jwt_secret = settings.jwt_secret.get_secret_value()
 
-        clock = SystemClock()
         issuer = SessionIssuer(
             tokens=JwtTokenIssuer(
                 secret=jwt_secret,
@@ -96,7 +110,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             refresh_ttl=timedelta(days=settings.refresh_token_days),
         )
         app.state.authenticate_user = authenticate_user_factory(
-            session_factory=session_factory, hasher=hasher, issuer=issuer
+            session_factory=session_factory,
+            hasher=hasher,
+            issuer=issuer,
+            attempts=attempts,
         )
         app.state.refresh_session = refresh_session_factory(
             session_factory=session_factory, issuer=issuer, clock=clock

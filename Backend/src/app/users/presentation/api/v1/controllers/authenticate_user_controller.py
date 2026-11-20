@@ -23,7 +23,9 @@ AuthenticateUserFactory = Callable[
 class AuthenticateUserController:
     build_interactor: AuthenticateUserFactory
 
-    async def handle(self, request: AuthenticateUserRequest) -> JSONResponse:
+    async def handle(
+        self, request: AuthenticateUserRequest, client_ip: str
+    ) -> JSONResponse:
         presenter = AuthenticateUserHttpPresenter()
-        await self.build_interactor(presenter).execute(request.to_input())
+        await self.build_interactor(presenter).execute(request.to_input(client_ip))
         return presenter.response()

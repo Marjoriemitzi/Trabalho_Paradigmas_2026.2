@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.users.application.attempts import AttemptGuard
 from app.users.application.ports.clock import Clock
 from app.users.application.ports.password_hasher import PasswordHasher
 from app.users.application.session import SessionIssuer
@@ -67,12 +68,14 @@ def register_user_factory(
     session_factory: async_sessionmaker[AsyncSession],
     hasher: PasswordHasher,
     policy: PasswordPolicy,
+    attempts: AttemptGuard,
 ) -> RegisterUserFactory:
     def build(presenter: RegisterUserOutputPort) -> RegisterUserInputPort:
         return RegisterUserInteractor(
             uow=SqlAlchemyUnitOfWork(session_factory),
             hasher=hasher,
             policy=policy,
+            attempts=attempts,
             presenter=presenter,
         )
 
@@ -83,12 +86,14 @@ def authenticate_user_factory(
     session_factory: async_sessionmaker[AsyncSession],
     hasher: PasswordHasher,
     issuer: SessionIssuer,
+    attempts: AttemptGuard,
 ) -> AuthenticateUserFactory:
     def build(presenter: AuthenticateUserOutputPort) -> AuthenticateUserInputPort:
         return AuthenticateUserInteractor(
             uow=SqlAlchemyUnitOfWork(session_factory),
             hasher=hasher,
             issuer=issuer,
+            attempts=attempts,
             presenter=presenter,
         )
 
