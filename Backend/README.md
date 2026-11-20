@@ -49,7 +49,10 @@ token.
 - `POST /api/v1/auth/refresh` troca o refresh token por um par novo (rotação). Apresentar um
   refresh token já usado revoga a sessão inteira e responde `401 invalid_refresh_token`.
 - `POST /api/v1/auth/logout` revoga a sessão do refresh token enviado e é idempotente (`204`).
-- O access token já emitido vale até vencer (no máximo `JWT_EXPIRES_MINUTES`).
+- O access token já emitido vale até vencer (no máximo `JWT_EXPIRES_MINUTES`), a menos que o logout
+  venha com `Authorization: Bearer <access token>`: aí o `jti` dele entra na lista de bloqueio
+  (`revoked_tokens`) e `require_authenticated_user` o recusa em todas as rotas. Todo access token
+  leva `jti`; tokens sem ele são recusados.
 
 ## Dia a dia
 

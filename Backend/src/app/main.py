@@ -43,7 +43,7 @@ from app.users.composition import (
     refresh_session_factory,
     register_user_factory,
 )
-from app.users.infrastructure.persistence.user_existence import SqlUserExistence
+from app.users.infrastructure.persistence.access_token_check import SqlAccessTokenCheck
 from app.users.infrastructure.prolog.prolog_password_policy import (
     PrologPasswordPolicy,
 )
@@ -82,7 +82,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.delete_user = delete_user_factory(
             session_factory=session_factory, hasher=hasher
         )
-        app.state.user_existence = SqlUserExistence(session_factory)
+        app.state.access_token_check = SqlAccessTokenCheck(session_factory)
         jwt_secret = settings.jwt_secret.get_secret_value()
 
         clock = SystemClock()

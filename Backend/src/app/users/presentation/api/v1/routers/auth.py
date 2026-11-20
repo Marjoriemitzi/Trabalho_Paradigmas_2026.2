@@ -24,6 +24,7 @@ from app.users.presentation.api.v1.schemas.authenticate_user import (
 from app.users.presentation.api.v1.schemas.refresh_session import (
     RefreshSessionRequest,
 )
+from app.users.presentation.api.v1.security import OptionalCurrentUser
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -72,11 +73,13 @@ async def refresh_session(
     response_class=Response,
     description=(
         "Revoga a sessão do refresh token apresentado. É idempotente: um token "
-        "desconhecido também responde 204. O access token já emitido vale até vencer."
+        "desconhecido também responde 204. Se vier um `Authorization: Bearer` válido, "
+        "o access token dele também é bloqueado até vencer."
     ),
 )
 async def logout(
     body: RefreshSessionRequest,
+    current: OptionalCurrentUser,
     controller: Annotated[LogoutController, Depends(get_logout_controller)],
 ) -> Response:
-    return await controller.handle(body)
+    return await controller.handle(body, current)

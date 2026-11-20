@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from fastapi import Response
 
+from app.users.application.ports.token_verifier import AuthenticatedUser
 from app.users.application.use_cases.logout import (
     LogoutInputPort,
     LogoutOutputPort,
@@ -21,7 +22,9 @@ LogoutFactory = Callable[[LogoutOutputPort], LogoutInputPort]
 class LogoutController:
     build_interactor: LogoutFactory
 
-    async def handle(self, request: RefreshSessionRequest) -> Response:
+    async def handle(
+        self, request: RefreshSessionRequest, current: AuthenticatedUser | None
+    ) -> Response:
         presenter = LogoutHttpPresenter()
-        await self.build_interactor(presenter).execute(request.to_logout_input())
+        await self.build_interactor(presenter).execute(request.to_logout_input(current))
         return presenter.response()

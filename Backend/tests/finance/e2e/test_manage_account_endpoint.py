@@ -23,8 +23,8 @@ from app.finance.application.use_cases.rename_account import (
 from app.finance.presentation.api.v1.routers.accounts import router
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from tests.finance.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.users.fakes.fake_access_token_check import FakeAccessTokenCheck
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
-from tests.users.fakes.fake_user_existence import FakeUserExistence
 
 URL = "/api/v1/accounts"
 ANA, BIA = uuid.uuid4(), uuid.uuid4()
@@ -54,7 +54,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.state.rename_account = renomear
     app.state.delete_account = apagar
     app.state.token_verifier = FakeTokenVerifier()
-    app.state.user_existence = FakeUserExistence()
+    app.state.access_token_check = FakeAccessTokenCheck()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://teste") as client:

@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -57,3 +58,10 @@ def test_um_token_adulterado_nao_vale() -> None:
         jwt.decode(
             token.value, "outro-segredo-qualquer-com-32-bytes!!", algorithms=["HS256"]
         )
+
+
+def test_cada_token_tem_um_jti_proprio() -> None:
+    primeiro = jwt.decode(emissor().issue(USUARIO).value, SEGREDO, algorithms=["HS256"])
+    segundo = jwt.decode(emissor().issue(USUARIO).value, SEGREDO, algorithms=["HS256"])
+
+    assert uuid.UUID(primeiro["jti"]) != uuid.UUID(segundo["jti"])

@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Protocol, Self
 
+from app.users.application.ports.token_blocklist import TokenBlocklist
 from app.users.domain.repositories.refresh_token_repository import (
     RefreshTokenRepository,
 )
@@ -13,6 +14,9 @@ class UnitOfWork(Protocol):
 
     @property
     def refresh_tokens(self) -> RefreshTokenRepository: ...
+
+    @property
+    def token_blocklist(self) -> TokenBlocklist: ...
 
     async def __aenter__(self) -> Self: ...
 

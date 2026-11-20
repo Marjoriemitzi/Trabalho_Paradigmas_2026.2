@@ -14,10 +14,10 @@ from app.users.domain.entities.user import User
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from app.users.presentation.api.v1.routers.users import router
+from tests.users.fakes.fake_access_token_check import FakeAccessTokenCheck
 from tests.users.fakes.fake_token_issuer import FakeTokenIssuer
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
-from tests.users.fakes.fake_user_existence import FakeUserExistence
 
 URL = "/api/v1/users/me"
 ANA = User.register(Email("ana@acme.com"), PasswordHash("hash"))
@@ -43,7 +43,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.include_router(router)
     app.state.get_current_user = build_interactor
     app.state.token_verifier = FakeTokenVerifier()
-    app.state.user_existence = FakeUserExistence(uow.users)
+    app.state.access_token_check = FakeAccessTokenCheck(uow.users)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://teste") as client:

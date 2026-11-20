@@ -116,3 +116,66 @@ async def test_apagar_o_usuario_apaga_os_refresh_tokens(
     await engine.dispose()
 
     assert restantes == 0
+
+
+async def test_logout_com_o_access_token_bloqueia_o_token_em_todas_as_rotas(
+    real_client: AsyncClient, fresh_email: str
+) -> None:
+    login = await entrar(real_client, fresh_email)
+    segunda = await real_client.post(
+        "/api/v1/auth/login", json={"email": fresh_email, "password": SENHA}
+    )
+    revogado = {"Authorization": f"Bearer {login['access_token']}"}
+    outro = {"Authorization": f"Bearer {segunda.json()['access_token']}"}
+
+    saida = await real_client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": login["refresh_token"]},
+        headers=revogado,
+    )
+
+    assert saida.status_code == 204
+    for rota in ("/api/v1/users/me", "/api/v1/accounts"):
+        resposta = await real_client.get(rota, headers=revogado)
+        assert resposta.status_code == 401
+        assert resposta.json() == {"error": "invalid_token"}
+    assert (await real_client.get("/api/v1/users/me", headers=outro)).status_code == 200
+
+
+async def test_logout_sem_o_access_token_deixa_ele_valer_ate_vencer(
+    real_client: AsyncClient, fresh_email: str
+) -> None:
+    login = await entrar(real_client, fresh_email)
+
+    await real_client.post(
+        "/api/v1/auth/logout", json={"refresh_token": login["refresh_token"]}
+    )
+
+    eu = await real_client.get(
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {login['access_token']}"}
+    )
+    assert eu.status_code == 200
+
+
+async def test_token_sem_jti_nao_entra(
+    real_client: AsyncClient, fresh_email: str
+) -> None:
+    import os
+    from datetime import UTC, datetime, timedelta
+
+    import jwt
+
+    login = await entrar(real_client, fresh_email)
+    sub = jwt.decode(login["access_token"], options={"verify_signature": False})["sub"]
+    agora = datetime.now(UTC)
+    antigo = jwt.encode(
+        {"sub": sub, "role": "user", "iat": agora, "exp": agora + timedelta(minutes=5)},
+        os.environ["JWT_SECRET"],
+        algorithm="HS256",
+    )
+
+    resposta = await real_client.get(
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {antigo}"}
+    )
+
+    assert resposta.status_code == 401
