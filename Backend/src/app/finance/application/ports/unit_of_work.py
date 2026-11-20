@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Protocol, Self
 
+from app.finance.application.ports.account_usage import AccountUsage
 from app.finance.application.ports.spending_reader import SpendingReader
 from app.finance.domain.repositories.account_repository import AccountRepository
 from app.finance.domain.repositories.category_catalog import CategoryCatalog
@@ -13,6 +14,9 @@ from app.finance.domain.repositories.transfer_repository import TransferReposito
 class UnitOfWork(Protocol):
     @property
     def accounts(self) -> AccountRepository: ...
+
+    @property
+    def account_usage(self) -> AccountUsage: ...
 
     @property
     def categories(self) -> CategoryCatalog: ...

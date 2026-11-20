@@ -18,6 +18,9 @@ class Account:
     def open(cls, owner: OwnerId, name: AccountName, kind: AccountKind) -> Self:
         return cls(id=AccountId.new(), owner=owner, name=name, kind=kind)
 
+    def rename(self, name: AccountName) -> None:
+        self.name = name
+
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Account) and other.id == self.id
 
