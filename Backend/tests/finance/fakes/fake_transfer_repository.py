@@ -25,6 +25,17 @@ class FakeTransferRepository:
     async def remove(self, transfer: Transfer) -> None:
         self.stored = [t for t in self.stored if t != transfer]
 
+    async def update(self, transfer: Transfer) -> None:
+        self.stored = [transfer if t.id == transfer.id else t for t in self.stored]
+
+    async def list_all_between(self, owner: OwnerId, period: Period) -> list[Transfer]:
+        do_periodo = [
+            t
+            for t in self.stored
+            if t.owner == owner and period.contains(t.occurred_on)
+        ]
+        return sorted(do_periodo, key=lambda t: t.occurred_on)
+
     def _da_conta(self, owner: OwnerId, account: AccountId) -> list[Transfer]:
         return [t for t in self.stored if t.owner == owner and t.touches(account)]
 

@@ -2,12 +2,12 @@ from fastapi import status
 from fastapi.responses import JSONResponse
 
 from app.shared.presentation.api.errors import error_response
-from app.users.application.ports.token_issuer import AccessToken
+from app.users.application.session import Session
 from app.users.application.use_cases.authenticate_user import (
     AuthenticateUserOutputPort,
 )
 from app.users.presentation.api.v1.schemas.authenticate_user import (
-    AccessTokenResponse,
+    SessionResponse,
 )
 
 
@@ -20,8 +20,8 @@ class AuthenticateUserHttpPresenter(AuthenticateUserOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
-    def present_authenticated(self, token: AccessToken) -> None:
-        corpo = AccessTokenResponse.from_token(token).model_dump()
+    def present_authenticated(self, session: Session) -> None:
+        corpo = SessionResponse.from_session(session).model_dump()
         self._response = JSONResponse(
             corpo,
             status_code=status.HTTP_200_OK,

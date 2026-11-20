@@ -18,11 +18,11 @@ class User:
     def register(cls, email: Email, password_hash: PasswordHash) -> Self:
         return cls(id=UserId.new(), email=email, password_hash=password_hash)
 
+    def change_password(self, new_hash: PasswordHash) -> None:
+        self.password_hash = new_hash
+
     def __eq__(self, other: object) -> bool:
         return isinstance(other, User) and other.id == self.id
 
     def __hash__(self) -> int:
         return hash(self.id)
-
-
-__all__ = ["UserId", "User"]

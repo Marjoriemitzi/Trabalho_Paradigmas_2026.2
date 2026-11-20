@@ -18,6 +18,7 @@ from app.finance.application.use_cases.list_accounts import (
 from app.finance.presentation.api.v1.routers.accounts import router
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from tests.finance.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.users.fakes.fake_access_token_check import FakeAccessTokenCheck
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
 
 URL = "/api/v1/accounts"
@@ -44,6 +45,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.state.create_account = criar
     app.state.list_accounts = listar
     app.state.token_verifier = FakeTokenVerifier()
+    app.state.access_token_check = FakeAccessTokenCheck()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://teste") as client:

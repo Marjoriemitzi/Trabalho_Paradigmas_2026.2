@@ -1,31 +1,30 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 
-from fastapi import Response, status
+from fastapi import Response
 
-from app.users.application.use_cases.logout_user import (
-    LogoutUserInputPort,
-    LogoutUserOutputPort,
-    LogoutUserRequest,
+from app.users.application.ports.token_verifier import AuthenticatedUser
+from app.users.application.use_cases.logout import (
+    LogoutInputPort,
+    LogoutOutputPort,
+)
+from app.users.presentation.api.v1.presenters.logout_presenter import (
+    LogoutHttpPresenter,
+)
+from app.users.presentation.api.v1.schemas.refresh_session import (
+    RefreshSessionRequest,
 )
 
-
-class LogoutHttpPresenter(LogoutUserOutputPort):
-    def __init__(self) -> None:
-        self.response: Response | None = None
-
-    def present_success(self) -> None:
-        self.response = Response(status_code=status.HTTP_204_NO_CONTENT)
+LogoutFactory = Callable[[LogoutOutputPort], LogoutInputPort]
 
 
-LogoutFactory = Callable[[LogoutUserOutputPort], LogoutUserInputPort]
-
-
+@dataclass(frozen=True, slots=True)
 class LogoutController:
-    def __init__(self, factory: LogoutFactory) -> None:
-        self._factory = factory
+    build_interactor: LogoutFactory
 
-    async def handle(self, request: LogoutUserRequest) -> Response:
+    async def handle(
+        self, request: RefreshSessionRequest, current: AuthenticatedUser | None
+    ) -> Response:
         presenter = LogoutHttpPresenter()
-        interactor = self._factory(presenter)
-        await interactor.execute(request)
-        return presenter.response  # type: ignore
+        await self.build_interactor(presenter).execute(request.to_logout_input(current))
+        return presenter.response()

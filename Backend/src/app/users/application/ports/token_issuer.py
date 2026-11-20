@@ -1,12 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from app.users.domain.entities.user import User
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AccessToken:
-    value: str
+    value: str = field(repr=False)
     expires_in: int
 
 

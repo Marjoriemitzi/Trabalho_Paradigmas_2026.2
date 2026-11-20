@@ -23,6 +23,7 @@ from app.finance.domain.value_objects.transaction_kind import TransactionKind
 from app.finance.presentation.api.v1.routers.transactions import router
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from tests.finance.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.users.fakes.fake_access_token_check import FakeAccessTokenCheck
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
 
 URL = "/api/v1/transactions"
@@ -79,6 +80,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.include_router(router)
     app.state.get_statement = build_interactor
     app.state.token_verifier = FakeTokenVerifier()
+    app.state.access_token_check = FakeAccessTokenCheck()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://teste") as client:
