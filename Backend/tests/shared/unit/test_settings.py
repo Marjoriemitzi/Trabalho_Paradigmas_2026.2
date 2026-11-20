@@ -17,6 +17,7 @@ def ambiente(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
     monkeypatch.delenv("JWT_EXPIRES_MINUTES", raising=False)
     monkeypatch.delenv("REFRESH_TOKEN_DAYS", raising=False)
     monkeypatch.delenv("ENABLE_DOCS", raising=False)
+    monkeypatch.delenv("TIMEZONE", raising=False)
     return monkeypatch
 
 
@@ -95,3 +96,20 @@ def test_cors_texto_vazio_vira_lista_vazia(ambiente: pytest.MonkeyPatch) -> None
     ambiente.setenv("CORS_ORIGINS", "   ")
 
     assert Settings().cors_origins == []
+
+
+def test_o_fuso_padrao_e_o_de_sao_paulo(ambiente: pytest.MonkeyPatch) -> None:
+    assert Settings().timezone == "America/Sao_Paulo"
+
+
+def test_o_fuso_vem_do_ambiente(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("TIMEZONE", "UTC")
+
+    assert Settings().timezone == "UTC"
+
+
+def test_recusa_fuso_desconhecido(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("TIMEZONE", "Marte/Olimpo")
+
+    with pytest.raises(ValidationError, match="Fuso horário desconhecido"):
+        Settings()

@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Annotated
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode
@@ -17,6 +18,7 @@ class Settings(BaseSettings):
     login_window_minutes: int = Field(default=15, gt=0)
     register_ip_max: int = Field(default=5, gt=0)
     register_window_minutes: int = Field(default=60, gt=0)
+    timezone: str = "America/Sao_Paulo"
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     @field_validator("cors_origins", mode="before")
@@ -39,3 +41,12 @@ class Settings(BaseSettings):
             if origem.endswith("/"):
                 raise ValueError(f"A origem CORS não pode terminar com barra: {origem}")
         return origens
+
+    @field_validator("timezone")
+    @classmethod
+    def _confere_o_fuso(cls, nome: str) -> str:
+        try:
+            ZoneInfo(nome)
+        except (ZoneInfoNotFoundError, ValueError) as error:
+            raise ValueError(f"Fuso horário desconhecido: {nome}") from error
+        return nome
