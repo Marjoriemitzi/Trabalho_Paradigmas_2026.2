@@ -1,15 +1,12 @@
-from typing import TYPE_CHECKING
-
 from fastapi import Request
-
-if TYPE_CHECKING:
-    from app.users.presentation.api.v1.controllers.change_password_controller import (
-        ChangePasswordController,
-    )
 
 from app.users.presentation.api.v1.controllers.authenticate_user_controller import (
     AuthenticateUserController,
     AuthenticateUserFactory,
+)
+from app.users.presentation.api.v1.controllers.change_password_controller import (
+    ChangePasswordController,
+    ChangePasswordFactory,
 )
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserController,
@@ -36,5 +33,6 @@ def get_current_user_controller(request: Request) -> GetCurrentUserController:
     return GetCurrentUserController(factory)
 
 
-def get_change_password_controller(request: Request) -> "ChangePasswordController":
-    return request.app.state.change_password_factory()
+def get_change_password_controller(request: Request) -> ChangePasswordController:
+    factory: ChangePasswordFactory = request.app.state.change_password
+    return ChangePasswordController(factory)

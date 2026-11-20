@@ -1,8 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import JSONResponse
 
+from app.users.presentation.api.v1.controllers.change_password_controller import (
+    ChangePasswordController,
+)
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserController,
 )
@@ -10,8 +13,12 @@ from app.users.presentation.api.v1.controllers.register_user_controller import (
     RegisterUserController,
 )
 from app.users.presentation.api.v1.dependencies import (
+    get_change_password_controller,
     get_current_user_controller,
     get_register_user_controller,
+)
+from app.users.presentation.api.v1.schemas.change_password import (
+    ChangePasswordRequest,
 )
 from app.users.presentation.api.v1.schemas.get_current_user import (
     UserProfileResponse,
@@ -63,24 +70,27 @@ async def get_current_user(
     return await controller.handle(current)
 
 
-@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/me/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description=(
+        "Troca a senha de quem está logado. Os tokens já emitidos continuam valendo "
+        "até expirarem (`JWT_EXPIRES_MINUTES`); a revogação fica para o refresh token."
+    ),
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Sem token, ou com um token inválido ou expirado"
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Senha atual errada, senha nova fraca ou pedido mal formado"
+        },
+    },
+)
 async def change_password(
-    body: __import__(
-        "app.users.presentation.api.v1.schemas.change_password",
-        fromlist=["ChangePasswordRequest"],
-    ).ChangePasswordRequest,
+    body: ChangePasswordRequest,
     current: CurrentUser,
     controller: Annotated[
-        __import__(
-            "app.users.presentation.api.v1.controllers.change_password_controller",
-            fromlist=["ChangePasswordController"],
-        ).ChangePasswordController,
-        Depends(
-            __import__(
-                "app.users.presentation.api.v1.dependencies",
-                fromlist=["get_change_password_controller"],
-            ).get_change_password_controller
-        ),
+        ChangePasswordController, Depends(get_change_password_controller)
     ],
-) -> JSONResponse:
-    return await controller.handle(body, current.id)
+) -> Response:
+    return await controller.handle(body, current)
