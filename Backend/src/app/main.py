@@ -16,9 +16,11 @@ from app.finance.composition import (
     get_statement_factory,
     list_accounts_factory,
     list_categories_factory,
+    list_transfers_factory,
     record_transaction_factory,
     rename_account_factory,
     update_transaction_factory,
+    update_transfer_factory,
 )
 from app.finance.infrastructure.prolog.prolog_categorizer import PrologCategorizer
 from app.finance.presentation.api.v1.routers import (
@@ -98,6 +100,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.delete_transaction = delete_transaction_factory(session_factory)
         app.state.create_transfer = create_transfer_factory(session_factory)
         app.state.delete_transfer = delete_transfer_factory(session_factory)
+        app.state.update_transfer = update_transfer_factory(session_factory)
+        app.state.list_transfers = list_transfers_factory(session_factory)
         app.state.get_statement = get_statement_factory(session_factory)
         app.state.create_account = create_account_factory(session_factory)
         app.state.list_accounts = list_accounts_factory(session_factory)

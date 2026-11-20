@@ -41,6 +41,11 @@ from app.finance.application.use_cases.list_categories import (
     ListCategoriesInteractor,
     ListCategoriesOutputPort,
 )
+from app.finance.application.use_cases.list_transfers import (
+    ListTransfersInputPort,
+    ListTransfersInteractor,
+    ListTransfersOutputPort,
+)
 from app.finance.application.use_cases.record_transaction import (
     RecordTransactionInputPort,
     RecordTransactionInteractor,
@@ -55,6 +60,11 @@ from app.finance.application.use_cases.update_transaction import (
     UpdateTransactionInputPort,
     UpdateTransactionInteractor,
     UpdateTransactionOutputPort,
+)
+from app.finance.application.use_cases.update_transfer import (
+    UpdateTransferInputPort,
+    UpdateTransferInteractor,
+    UpdateTransferOutputPort,
 )
 from app.finance.domain.services.categorizer import Categorizer
 from app.finance.infrastructure.persistence.unit_of_work import SqlAlchemyUnitOfWork
@@ -80,6 +90,8 @@ from app.finance.presentation.api.v1.controllers.record_transaction_controller i
 from app.finance.presentation.api.v1.controllers.transfers_controllers import (
     CreateTransferFactory,
     DeleteTransferFactory,
+    ListTransfersFactory,
+    UpdateTransferFactory,
 )
 
 
@@ -208,6 +220,28 @@ def delete_account_factory(
 ) -> DeleteAccountFactory:
     def build(presenter: DeleteAccountOutputPort) -> DeleteAccountInputPort:
         return DeleteAccountInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
+        )
+
+    return build
+
+
+def update_transfer_factory(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> UpdateTransferFactory:
+    def build(presenter: UpdateTransferOutputPort) -> UpdateTransferInputPort:
+        return UpdateTransferInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
+        )
+
+    return build
+
+
+def list_transfers_factory(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> ListTransfersFactory:
+    def build(presenter: ListTransfersOutputPort) -> ListTransfersInputPort:
+        return ListTransfersInteractor(
             uow=SqlAlchemyUnitOfWork(session_factory), presenter=presenter
         )
 

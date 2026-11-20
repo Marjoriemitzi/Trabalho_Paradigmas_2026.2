@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import ColumnElement, delete, func, or_, select
+from sqlalchemy import ColumnElement, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.finance.domain.entities.transfer import Transfer
@@ -98,3 +98,31 @@ class SqlTransferRepository:
             )
             for conta in entrou.keys() | saiu.keys()
         }
+
+    async def update(self, transfer: Transfer) -> None:
+        await self._session.execute(
+            update(TransferModel)
+            .where(
+                TransferModel.id == transfer.id.value,
+                TransferModel.owner_id == transfer.owner.value,
+            )
+            .values(
+                from_account_id=transfer.source.value,
+                to_account_id=transfer.destination.value,
+                amount_cents=transfer.amount.cents,
+                description=transfer.description.text,
+                occurred_on=transfer.occurred_on,
+            )
+        )
+        await self._session.flush()
+
+    async def list_all_between(self, owner: OwnerId, period: Period) -> list[Transfer]:
+        consulta = (
+            select(TransferModel)
+            .where(
+                TransferModel.owner_id == owner.value,
+                TransferModel.occurred_on.between(period.start, period.end),
+            )
+            .order_by(TransferModel.occurred_on, TransferModel.created_at)
+        )
+        return [to_entity(m) for m in await self._session.scalars(consulta)]

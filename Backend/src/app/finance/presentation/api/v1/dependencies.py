@@ -33,6 +33,10 @@ from app.finance.presentation.api.v1.controllers.transfers_controllers import (
     CreateTransferFactory,
     DeleteTransferController,
     DeleteTransferFactory,
+    ListTransfersController,
+    ListTransfersFactory,
+    UpdateTransferController,
+    UpdateTransferFactory,
 )
 
 
@@ -89,3 +93,13 @@ def get_rename_account_controller(request: Request) -> RenameAccountController:
 def get_delete_account_controller(request: Request) -> DeleteAccountController:
     factory: DeleteAccountFactory = request.app.state.delete_account
     return DeleteAccountController(factory)
+
+
+def get_update_transfer_controller(request: Request) -> UpdateTransferController:
+    factory: UpdateTransferFactory = request.app.state.update_transfer
+    return UpdateTransferController(factory)
+
+
+def get_list_transfers_controller(request: Request) -> ListTransfersController:
+    factory: ListTransfersFactory = request.app.state.list_transfers
+    return ListTransfersController(factory)

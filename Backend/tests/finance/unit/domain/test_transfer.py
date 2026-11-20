@@ -64,3 +64,41 @@ def test_fluxos_separam_o_que_entrou_do_que_saiu_da_conta() -> None:
 
     assert fluxos == TransferFlows(incoming_cents=5000, outgoing_cents=170000)
     assert fluxos.net_cents == -165000
+
+
+def test_revise_troca_todos_os_campos_e_mantem_a_identidade() -> None:
+    transferencia = transferir(CORRENTE, CARTAO, 1000)
+    id_antes = transferencia.id
+
+    transferencia.revise(
+        source=CARTEIRA,
+        destination=CORRENTE,
+        amount=Money(2500),
+        description=Description("Corrigida"),
+        occurred_on=date(2026, 11, 20),
+    )
+
+    assert transferencia.id == id_antes
+    assert transferencia.owner == DONO
+    assert transferencia.source == CARTEIRA
+    assert transferencia.destination == CORRENTE
+    assert transferencia.amount == Money(2500)
+    assert transferencia.description == Description("Corrigida")
+    assert transferencia.occurred_on == date(2026, 11, 20)
+
+
+def test_revise_recusa_a_mesma_conta_e_nao_muda_nada() -> None:
+    transferencia = transferir(CORRENTE, CARTAO, 1000)
+
+    with pytest.raises(InvalidValueError) as erro:
+        transferencia.revise(
+            source=CARTAO,
+            destination=CARTAO,
+            amount=Money(2500),
+            description=Description("Corrigida"),
+            occurred_on=date(2026, 11, 20),
+        )
+
+    assert erro.value.problem == "same_account"
+    assert transferencia.source == CORRENTE
+    assert transferencia.amount == Money(1000)
