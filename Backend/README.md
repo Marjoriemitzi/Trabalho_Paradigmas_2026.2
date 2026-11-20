@@ -40,6 +40,17 @@ O token vai no cabeçalho `Authorization`, então `allow_credentials` fica `Fals
 `500` geradas pelo `ServerErrorMiddleware` do Starlette ficam fora do `CORSMiddleware` e não levam os
 cabeçalhos de CORS; o navegador mostra isso como erro de CORS, mas a causa é o erro `500`.
 
+## Sessão (access e refresh token)
+
+`POST /api/v1/auth/login` devolve um access token curto (`JWT_EXPIRES_MINUTES`, padrão 15) e um
+refresh token opaco (`REFRESH_TOKEN_DAYS`, padrão 30). O banco guarda só o hash SHA-256 do refresh
+token.
+
+- `POST /api/v1/auth/refresh` troca o refresh token por um par novo (rotação). Apresentar um
+  refresh token já usado revoga a sessão inteira e responde `401 invalid_refresh_token`.
+- `POST /api/v1/auth/logout` revoga a sessão do refresh token enviado e é idempotente (`204`).
+- O access token já emitido vale até vencer (no máximo `JWT_EXPIRES_MINUTES`).
+
 ## Dia a dia
 
 ```bash

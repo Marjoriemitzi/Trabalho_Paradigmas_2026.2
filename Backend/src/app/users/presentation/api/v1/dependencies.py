@@ -16,6 +16,14 @@ from app.users.presentation.api.v1.controllers.get_current_user_controller impor
     GetCurrentUserController,
     GetCurrentUserFactory,
 )
+from app.users.presentation.api.v1.controllers.logout_controller import (
+    LogoutController,
+    LogoutFactory,
+)
+from app.users.presentation.api.v1.controllers.refresh_session_controller import (
+    RefreshSessionController,
+    RefreshSessionFactory,
+)
 from app.users.presentation.api.v1.controllers.register_user_controller import (
     RegisterUserController,
     RegisterUserFactory,
@@ -45,3 +53,13 @@ def get_change_password_controller(request: Request) -> ChangePasswordController
 def get_delete_user_controller(request: Request) -> DeleteUserController:
     factory: DeleteUserFactory = request.app.state.delete_user
     return DeleteUserController(factory)
+
+
+def get_refresh_session_controller(request: Request) -> RefreshSessionController:
+    factory: RefreshSessionFactory = request.app.state.refresh_session
+    return RefreshSessionController(factory)
+
+
+def get_logout_controller(request: Request) -> LogoutController:
+    factory: LogoutFactory = request.app.state.logout
+    return LogoutController(factory)

@@ -15,6 +15,7 @@ def ambiente(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
     monkeypatch.setenv("PROLOG_RULES_DIR", "/app/rules")
     monkeypatch.setenv("JWT_SECRET", SEGREDO)
     monkeypatch.delenv("JWT_EXPIRES_MINUTES", raising=False)
+    monkeypatch.delenv("REFRESH_TOKEN_DAYS", raising=False)
     monkeypatch.delenv("ENABLE_DOCS", raising=False)
     return monkeypatch
 
@@ -46,7 +47,8 @@ def test_le_o_segredo_e_a_validade_do_token(ambiente: pytest.MonkeyPatch) -> Non
     settings = Settings()
 
     assert settings.jwt_secret.get_secret_value() == SEGREDO
-    assert settings.jwt_expires_minutes == 30
+    assert settings.jwt_expires_minutes == 15
+    assert settings.refresh_token_days == 30
 
 
 def test_recusa_segredo_curto_demais(ambiente: pytest.MonkeyPatch) -> None:

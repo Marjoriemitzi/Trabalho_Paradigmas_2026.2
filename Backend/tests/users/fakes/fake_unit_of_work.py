@@ -1,12 +1,14 @@
 from types import TracebackType
 from typing import Self
 
+from tests.users.fakes.fake_refresh_token_repository import FakeRefreshTokenRepository
 from tests.users.fakes.fake_user_repository import FakeUserRepository
 
 
 class FakeUnitOfWork:
     def __init__(self, users: FakeUserRepository | None = None) -> None:
         self.users = users or FakeUserRepository()
+        self.refresh_tokens = FakeRefreshTokenRepository()
         self.committed = False
         self.rolled_back = False
 

@@ -33,11 +33,14 @@ from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from app.shared.presentation.api.middleware import CacheControlMiddleware
+from app.users.application.session import SessionIssuer
 from app.users.composition import (
     authenticate_user_factory,
     change_password_factory,
     delete_user_factory,
     get_current_user_factory,
+    logout_factory,
+    refresh_session_factory,
     register_user_factory,
 )
 from app.users.infrastructure.persistence.user_existence import SqlUserExistence
@@ -47,6 +50,10 @@ from app.users.infrastructure.prolog.prolog_password_policy import (
 from app.users.infrastructure.security.argon2_hasher import Argon2Hasher
 from app.users.infrastructure.security.jwt_token_issuer import JwtTokenIssuer
 from app.users.infrastructure.security.jwt_token_verifier import JwtTokenVerifier
+from app.users.infrastructure.security.secrets_refresh_token_generator import (
+    SecretsRefreshTokenGenerator,
+)
+from app.users.infrastructure.system_clock import SystemClock
 from app.users.presentation.api.v1.routers import auth, users
 
 
@@ -78,14 +85,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.user_existence = SqlUserExistence(session_factory)
         jwt_secret = settings.jwt_secret.get_secret_value()
 
-        app.state.authenticate_user = authenticate_user_factory(
-            session_factory=session_factory,
-            hasher=hasher,
+        clock = SystemClock()
+        issuer = SessionIssuer(
             tokens=JwtTokenIssuer(
                 secret=jwt_secret,
                 expires_in=timedelta(minutes=settings.jwt_expires_minutes),
             ),
+            generator=SecretsRefreshTokenGenerator(),
+            clock=clock,
+            refresh_ttl=timedelta(days=settings.refresh_token_days),
         )
+        app.state.authenticate_user = authenticate_user_factory(
+            session_factory=session_factory, hasher=hasher, issuer=issuer
+        )
+        app.state.refresh_session = refresh_session_factory(
+            session_factory=session_factory, issuer=issuer, clock=clock
+        )
+        app.state.logout = logout_factory(session_factory, clock)
         app.state.token_verifier = JwtTokenVerifier(secret=jwt_secret)
         app.state.get_current_user = get_current_user_factory(session_factory)
 
