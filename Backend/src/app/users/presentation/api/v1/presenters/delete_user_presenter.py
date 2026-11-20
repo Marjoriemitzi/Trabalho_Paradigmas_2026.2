@@ -1,21 +1,21 @@
-from fastapi import status
-from fastapi.responses import JSONResponse
+from fastapi import Response, status
 
 from app.shared.presentation.api.errors import error_response
 from app.users.application.use_cases.delete_user import DeleteUserOutputPort
+from app.users.presentation.api.v1.security import invalid_token
 
 
 class DeleteUserHttpPresenter(DeleteUserOutputPort):
     def __init__(self) -> None:
-        self._response: JSONResponse | None = None
+        self._response: Response | None = None
 
-    def response(self) -> JSONResponse:
+    def response(self) -> Response:
         if self._response is None:
-            raise RuntimeError("Erro")
+            raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
-    def present_success(self) -> None:
-        self._response = JSONResponse(None, status_code=status.HTTP_204_NO_CONTENT)
+    def present_deleted(self) -> None:
+        self._response = Response(status_code=status.HTTP_204_NO_CONTENT)
 
     def present_invalid_current_password(self) -> None:
         self._response = error_response(
@@ -23,4 +23,4 @@ class DeleteUserHttpPresenter(DeleteUserOutputPort):
         )
 
     def present_user_not_found(self) -> None:
-        self._response = error_response(status.HTTP_401_UNAUTHORIZED, "invalid_token")
+        raise invalid_token()

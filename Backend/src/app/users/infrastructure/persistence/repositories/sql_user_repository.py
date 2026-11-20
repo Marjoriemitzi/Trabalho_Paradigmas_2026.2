@@ -43,12 +43,12 @@ class SqlUserRepository:
 
     async def update_password(self, user: User) -> None:
         modelo = await self._session.get(UserModel, user.id.value)
-        if modelo:
+        if modelo is not None:
             modelo.password_hash = user.password_hash.value
             await self._session.flush()
 
     async def remove(self, user: User) -> None:
         modelo = await self._session.get(UserModel, user.id.value)
-        if modelo:
+        if modelo is not None:
             await self._session.delete(modelo)
             await self._session.flush()

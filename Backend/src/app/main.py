@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.finance.application.ports.transaction_check import TransactionCheck
@@ -27,11 +28,15 @@ from app.finance.presentation.api.v1.routers import (
 from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
 from app.shared.presentation.api.error_handlers import install_error_handlers
+from app.shared.presentation.api.middleware import CacheControlMiddleware
 from app.users.composition import (
     authenticate_user_factory,
+    change_password_factory,
+    delete_user_factory,
     get_current_user_factory,
     register_user_factory,
 )
+from app.users.infrastructure.persistence.user_existence import SqlUserExistence
 from app.users.infrastructure.prolog.prolog_password_policy import (
     PrologPasswordPolicy,
 )
@@ -53,12 +58,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session_factory = async_sessionmaker(engine, expire_on_commit=False)
         prolog = PrologGateway()
         hasher = Argon2Hasher()
+        policy = PrologPasswordPolicy(prolog, settings.prolog_rules_dir)
 
         app.state.register_user = register_user_factory(
             session_factory=session_factory,
             hasher=hasher,
-            policy=PrologPasswordPolicy(prolog, settings.prolog_rules_dir),
+            policy=policy,
         )
+        app.state.change_password = change_password_factory(
+            session_factory=session_factory, hasher=hasher, policy=policy
+        )
+        app.state.delete_user = delete_user_factory(
+            session_factory=session_factory, hasher=hasher
+        )
+        app.state.user_existence = SqlUserExistence(session_factory)
         jwt_secret = settings.jwt_secret.get_secret_value()
 
         app.state.authenticate_user = authenticate_user_factory(
@@ -98,6 +111,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs else None,
     )
     install_error_handlers(app)
+    app.add_middleware(CacheControlMiddleware)
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=False,
+            expose_headers=["Retry-After"],
+            max_age=600,
+        )
     app.include_router(users.router)
     app.include_router(auth.router)
     app.include_router(accounts.router)

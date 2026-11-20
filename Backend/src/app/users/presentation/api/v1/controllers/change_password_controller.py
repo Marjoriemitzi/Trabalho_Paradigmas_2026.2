@@ -1,29 +1,30 @@
-from fastapi.responses import JSONResponse
+from collections.abc import Callable
+from dataclasses import dataclass
 
-from app.users.application.use_cases.change_password import ChangePasswordInteractor
+from fastapi import Response
+
+from app.users.application.ports.token_verifier import AuthenticatedUser
 from app.users.application.use_cases.change_password import (
-    ChangePasswordRequest as DtoRequest,
+    ChangePasswordInputPort,
+    ChangePasswordOutputPort,
 )
 from app.users.presentation.api.v1.presenters.change_password_presenter import (
     ChangePasswordHttpPresenter,
 )
-from app.users.presentation.api.v1.schemas.change_password import ChangePasswordRequest
+from app.users.presentation.api.v1.schemas.change_password import (
+    ChangePasswordRequest,
+)
+
+ChangePasswordFactory = Callable[[ChangePasswordOutputPort], ChangePasswordInputPort]
 
 
+@dataclass(frozen=True, slots=True)
 class ChangePasswordController:
-    def __init__(
-        self,
-        interactor: ChangePasswordInteractor,
-        presenter: ChangePasswordHttpPresenter,
-    ) -> None:
-        self._interactor = interactor
-        self._presenter = presenter
+    build_interactor: ChangePasswordFactory
 
-    async def handle(self, body: ChangePasswordRequest, user_id: str) -> JSONResponse:
-        dto = DtoRequest(
-            user_id=user_id,
-            current_password=body.current_password.get_secret_value(),
-            new_password=body.new_password.get_secret_value(),
-        )
-        await self._interactor.execute(dto)
-        return self._presenter.response()
+    async def handle(
+        self, request: ChangePasswordRequest, current: AuthenticatedUser
+    ) -> Response:
+        presenter = ChangePasswordHttpPresenter()
+        await self.build_interactor(presenter).execute(request.to_input(current.id))
+        return presenter.response()

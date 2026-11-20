@@ -24,6 +24,7 @@ from app.finance.presentation.api.v1.routers.transfers import router
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from tests.finance.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
+from tests.users.fakes.fake_user_existence import FakeUserExistence
 
 URL = "/api/v1/transfers"
 ANA, BIA = uuid.uuid4(), uuid.uuid4()
@@ -66,6 +67,7 @@ async def api() -> AsyncIterator[Api]:
     app.state.create_transfer = criar
     app.state.delete_transfer = apagar
     app.state.token_verifier = FakeTokenVerifier()
+    app.state.user_existence = FakeUserExistence()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://teste") as client:
