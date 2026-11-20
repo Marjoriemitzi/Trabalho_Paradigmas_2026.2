@@ -57,3 +57,39 @@ def test_recusa_segredo_curto_demais(ambiente: pytest.MonkeyPatch) -> None:
 
 def test_o_segredo_do_token_nao_aparece_em_logs(ambiente: pytest.MonkeyPatch) -> None:
     assert SEGREDO not in repr(Settings())
+
+
+def test_o_padrao_do_cors_e_lista_vazia(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.delenv("CORS_ORIGINS", raising=False)
+
+    assert Settings().cors_origins == []
+
+
+def test_cors_aceita_lista_separada_por_virgula(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("CORS_ORIGINS", "http://localhost:8001, https://meu-app.com ")
+
+    assert Settings().cors_origins == ["http://localhost:8001", "https://meu-app.com"]
+
+
+@pytest.mark.parametrize(
+    ("valor", "trecho"),
+    [
+        ("*", "não é permitido"),
+        ("http://localhost:8001,*", "não é permitido"),
+        ("localhost:8000", "esquema http/https"),
+        ("http://localhost:8000/", "terminar com barra"),
+    ],
+)
+def test_cors_recusa_origem_invalida(
+    ambiente: pytest.MonkeyPatch, valor: str, trecho: str
+) -> None:
+    ambiente.setenv("CORS_ORIGINS", valor)
+
+    with pytest.raises(ValidationError, match=trecho):
+        Settings()
+
+
+def test_cors_texto_vazio_vira_lista_vazia(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("CORS_ORIGINS", "   ")
+
+    assert Settings().cors_origins == []

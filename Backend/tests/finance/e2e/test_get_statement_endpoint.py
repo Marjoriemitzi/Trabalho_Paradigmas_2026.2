@@ -24,6 +24,7 @@ from app.finance.presentation.api.v1.routers.transactions import router
 from app.shared.presentation.api.error_handlers import install_error_handlers
 from tests.finance.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
+from tests.users.fakes.fake_user_existence import FakeUserExistence
 
 URL = "/api/v1/transactions"
 NOVEMBRO = {"from": "2026-11-01", "to": "2026-11-30"}
@@ -79,6 +80,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.include_router(router)
     app.state.get_statement = build_interactor
     app.state.token_verifier = FakeTokenVerifier()
+    app.state.user_existence = FakeUserExistence()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://teste") as client:

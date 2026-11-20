@@ -41,3 +41,28 @@ class TransferOutput:
             description=transfer.description.text,
             occurred_on=transfer.occurred_on.isoformat(),
         )
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateTransferInput:
+    owner_id: uuid.UUID
+    transfer_id: uuid.UUID
+    from_account_id: uuid.UUID
+    to_account_id: uuid.UUID
+    amount_cents: int
+    description: str
+    occurred_on: date
+
+
+@dataclass(frozen=True, slots=True)
+class ListTransfersInput:
+    owner_id: uuid.UUID
+    start: date
+    end: date
+
+
+@dataclass(frozen=True, slots=True)
+class TransferListOutput:
+    start: str
+    end: str
+    transfers: list[TransferOutput]

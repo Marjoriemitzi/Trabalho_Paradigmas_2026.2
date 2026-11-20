@@ -1,83 +1,65 @@
 from dataclasses import dataclass
+from typing import Protocol
 
+from app.finance.application.dtos.transfers import TransferOutput, UpdateTransferInput
+from app.finance.application.fields import InvalidFieldError
 from app.finance.application.ports.unit_of_work import UnitOfWork
-from app.finance.application.use_cases.create_transfer import (
-    CreateTransferOutputPort as UpdateTransferOutputPort,
+from app.finance.application.transfer_fields import (
+    read_transfer_fields,
+    reference_problem,
 )
-from app.finance.application.use_cases.create_transfer import CreateTransferRequest
-from app.finance.domain.exceptions import InvalidTransferError
-from app.finance.domain.value_objects.account_id import AccountId
-from app.finance.domain.value_objects.description import Description
-from app.finance.domain.value_objects.money import Money
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.transfer_id import TransferId
 
 
+class UpdateTransferInputPort(Protocol):
+    async def execute(self, data: UpdateTransferInput) -> None: ...
+
+
+class UpdateTransferOutputPort(Protocol):
+    def present_updated(self, transfer: TransferOutput) -> None: ...
+
+    def present_invalid(self, field: str, problem: str) -> None: ...
+
+    def present_not_found(self) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
-class UpdateTransferRequest(CreateTransferRequest):
-    transfer_id: str
+class UpdateTransferInteractor(UpdateTransferInputPort):
+    uow: UnitOfWork
+    presenter: UpdateTransferOutputPort
 
-
-class UpdateTransferInteractor:
-    def __init__(self, uow: UnitOfWork, presenter: UpdateTransferOutputPort) -> None:
-        self._uow = uow
-        self._presenter = presenter
-
-    async def execute(self, request: UpdateTransferRequest) -> None:
+    async def execute(self, data: UpdateTransferInput) -> None:
         try:
-            owner_id = OwnerId(request.owner_id)
-            transfer_id = TransferId(request.transfer_id)
-            source = AccountId(request.from_account_id)
-            dest = AccountId(request.to_account_id)
-            amount = Money(request.amount_cents)
-            desc = Description(request.description)
-        except InvalidTransferError as error:
-            self._presenter.present_invalid_transfer(
-                [{"field": f, "problem": p} for f, p in error.problems]
+            campos = read_transfer_fields(
+                data.from_account_id,
+                data.to_account_id,
+                data.amount_cents,
+                data.description,
+                data.occurred_on,
             )
-            return
-        except ValueError:
-            self._presenter.present_transfer_not_found()
-            return
-
-        transfer = await self._uow.transfers.get(owner_id, transfer_id)
-        if not transfer:
-            self._presenter.present_transfer_not_found()
+        except InvalidFieldError as error:
+            self.presenter.present_invalid(error.field, error.problem)
             return
 
-        acc_source = await self._uow.accounts.get(owner_id, source)
-        acc_dest = await self._uow.accounts.get(owner_id, dest)
-        if not acc_source:
-            self._presenter.present_invalid_transfer(
-                [{"field": "from_account_id", "problem": "not_found"}]
+        owner = OwnerId(data.owner_id)
+        async with self.uow:
+            transfer = await self.uow.transfers.get(owner, TransferId(data.transfer_id))
+            if transfer is None:
+                self.presenter.present_not_found()
+                return
+            problema = await reference_problem(self.uow, owner, campos)
+            if problema is not None:
+                self.presenter.present_invalid(problema.field, problema.problem)
+                return
+            transfer.revise(
+                source=campos.source,
+                destination=campos.destination,
+                amount=campos.amount,
+                description=campos.description,
+                occurred_on=campos.occurred_on,
             )
-            return
-        if not acc_dest:
-            self._presenter.present_invalid_transfer(
-                [{"field": "to_account_id", "problem": "not_found"}]
-            )
-            return
+            await self.uow.transfers.update(transfer)
+            await self.uow.commit()
 
-        try:
-            transfer.revise(source, dest, amount, desc, request.occurred_on)
-        except InvalidTransferError as error:
-            self._presenter.present_invalid_transfer(
-                [{"field": f, "problem": p} for f, p in error.problems]
-            )
-            return
-
-        await self._uow.transfers.update(transfer)
-        await self._uow.commit()
-
-        from app.finance.application.dtos.transfers import TransferResponseDto
-
-        self._presenter.present_transfer_created(
-            TransferResponseDto(
-                id=transfer.id.value,
-                from_account_id=source.value,
-                to_account_id=dest.value,
-                amount_cents=amount.cents,
-                description=desc.value,
-                occurred_on=transfer.occurred_on,
-            )
-        )
+        self.presenter.present_updated(TransferOutput.from_transfer(transfer))

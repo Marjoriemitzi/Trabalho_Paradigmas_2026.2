@@ -8,14 +8,20 @@ from fastapi.responses import JSONResponse
 from app.finance.presentation.api.v1.controllers.transfers_controllers import (
     CreateTransferController,
     DeleteTransferController,
+    ListTransfersController,
+    UpdateTransferController,
 )
 from app.finance.presentation.api.v1.dependencies import (
     get_create_transfer_controller,
     get_delete_transfer_controller,
+    get_list_transfers_controller,
+    get_update_transfer_controller,
 )
 from app.finance.presentation.api.v1.schemas.transfers import (
     CreateTransferRequest,
+    TransferListResponse,
     TransferResponse,
+    UpdateTransferRequest,
 )
 from app.users.presentation.api.v1.security import CurrentUser
 
@@ -66,50 +72,48 @@ async def delete_transfer(
 
 @router.get(
     "",
-    response_model=__import__(
-        "app.finance.presentation.api.v1.schemas.transfers",
-        fromlist=["TransferListResponse"],
-    ).TransferListResponse,
+    response_model=TransferListResponse,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "Sem token, ou token inválido"},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Datas fora do formato ou período recusado"
+        },
+    },
 )
 async def list_transfers(
+    start: Annotated[
+        date, Query(alias="from", description="Primeiro dia (AAAA-MM-DD)")
+    ],
+    end: Annotated[date, Query(alias="to", description="Último dia, incluído")],
     current: CurrentUser,
     controller: Annotated[
-        __import__(
-            "app.finance.presentation.api.v1.controllers.transfers_controllers",
-            fromlist=["ListTransfersController"],
-        ).ListTransfersController,
-        Depends(
-            __import__(
-                "app.finance.presentation.api.v1.dependencies",
-                fromlist=["get_list_transfers_controller"],
-            ).get_list_transfers_controller
-        ),
+        ListTransfersController, Depends(get_list_transfers_controller)
     ],
-    start: date = Query(alias="from"),
-    end: date = Query(alias="to"),
 ) -> JSONResponse:
-    return await controller.handle(current.id, start, end)
+    return await controller.handle(start, end, owner_id=current.id.value)
 
 
-@router.put("/{transfer_id}", response_model=TransferResponse)
+@router.put(
+    "/{transfer_id}",
+    response_model=TransferResponse,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "Sem token, ou token inválido"},
+        status.HTTP_404_NOT_FOUND: {
+            "description": "A transferência não existe entre as suas"
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Pedido fora do formato ou com dados recusados"
+        },
+    },
+)
 async def update_transfer(
-    transfer_id: str,
-    body: __import__(
-        "app.finance.presentation.api.v1.schemas.transfers",
-        fromlist=["UpdateTransferRequest"],
-    ).UpdateTransferRequest,
+    transfer_id: uuid.UUID,
+    body: UpdateTransferRequest,
     current: CurrentUser,
     controller: Annotated[
-        __import__(
-            "app.finance.presentation.api.v1.controllers.transfers_controllers",
-            fromlist=["UpdateTransferController"],
-        ).UpdateTransferController,
-        Depends(
-            __import__(
-                "app.finance.presentation.api.v1.dependencies",
-                fromlist=["get_update_transfer_controller"],
-            ).get_update_transfer_controller
-        ),
+        UpdateTransferController, Depends(get_update_transfer_controller)
     ],
 ) -> JSONResponse:
-    return await controller.handle(body, current.id, transfer_id)
+    return await controller.handle(
+        body, owner_id=current.id.value, transfer_id=transfer_id
+    )

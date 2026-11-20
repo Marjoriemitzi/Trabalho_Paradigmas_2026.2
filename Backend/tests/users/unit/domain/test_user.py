@@ -33,3 +33,13 @@ def test_pode_ser_usado_em_conjuntos() -> None:
 
 def test_usuario_novo_comeca_como_usuario_comum() -> None:
     assert User.register(EMAIL, HASH).role is Role.USER
+
+
+def test_change_password_troca_so_o_hash() -> None:
+    user = User.register(EMAIL, HASH)
+    novo = PasswordHash("outro-hash")
+
+    user.change_password(novo)
+
+    assert user.password_hash == novo
+    assert user.email == EMAIL

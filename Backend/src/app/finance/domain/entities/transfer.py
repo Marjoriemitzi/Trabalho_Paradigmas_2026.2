@@ -56,7 +56,7 @@ class Transfer:
         occurred_on: date,
     ) -> None:
         if source == destination:
-            raise InvalidTransferError([("to_account_id", "same_account")])
+            raise InvalidValueError("same_account")
         self.source = source
         self.destination = destination
         self.amount = amount

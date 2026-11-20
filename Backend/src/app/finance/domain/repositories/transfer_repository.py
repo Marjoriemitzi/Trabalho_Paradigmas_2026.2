@@ -27,7 +27,9 @@ class TransferRepository(Protocol):
     async def flows_by_account(
         self, owner: OwnerId
     ) -> dict[AccountId, TransferFlows]: ...
+
     async def update(self, transfer: Transfer) -> None: ...
+
     async def list_all_between(
         self, owner: OwnerId, period: Period
     ) -> list[Transfer]: ...

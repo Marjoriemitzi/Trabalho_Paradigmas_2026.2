@@ -1,7 +1,8 @@
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, NoDecode
 
 
 class Settings(BaseSettings):
@@ -10,3 +11,25 @@ class Settings(BaseSettings):
     enable_docs: bool = False
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_expires_minutes: int = Field(default=30, gt=0)
+    cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _separa_as_origens(cls, valor: object) -> object:
+        if isinstance(valor, str):
+            return [parte.strip() for parte in valor.split(",") if parte.strip()]
+        return valor
+
+    @field_validator("cors_origins")
+    @classmethod
+    def _confere_as_origens(cls, origens: list[str]) -> list[str]:
+        for origem in origens:
+            if origem == "*":
+                raise ValueError('CORS "*" não é permitido: liste cada origem')
+            if not origem.startswith(("http://", "https://")):
+                raise ValueError(
+                    f"A origem CORS precisa do esquema http/https: {origem}"
+                )
+            if origem.endswith("/"):
+                raise ValueError(f"A origem CORS não pode terminar com barra: {origem}")
+        return origens

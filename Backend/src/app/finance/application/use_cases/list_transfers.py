@@ -1,53 +1,48 @@
 from dataclasses import dataclass
-from datetime import date
 from typing import Protocol
 
+from app.finance.application.dtos.transfers import (
+    ListTransfersInput,
+    TransferListOutput,
+    TransferOutput,
+)
 from app.finance.application.ports.unit_of_work import UnitOfWork
-from app.finance.domain.exceptions import InvalidPeriodError
+from app.finance.domain.exceptions import InvalidValueError
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
 
 
-@dataclass(frozen=True, slots=True)
-class ListTransfersRequest:
-    owner_id: str
-    start: date
-    end: date
+class ListTransfersInputPort(Protocol):
+    async def execute(self, data: ListTransfersInput) -> None: ...
 
 
 class ListTransfersOutputPort(Protocol):
-    def present_listed(self, transfers: list) -> None: ...
-    def present_invalid_period(self, problems: list[dict[str, str]]) -> None: ...
+    def present_listed(self, listing: TransferListOutput) -> None: ...
+
+    def present_invalid(self, field: str, problem: str) -> None: ...
 
 
-class ListTransfersInteractor:
-    def __init__(self, uow: UnitOfWork, presenter: ListTransfersOutputPort) -> None:
-        self._uow = uow
-        self._presenter = presenter
+@dataclass(frozen=True, slots=True)
+class ListTransfersInteractor(ListTransfersInputPort):
+    uow: UnitOfWork
+    presenter: ListTransfersOutputPort
 
-    async def execute(self, request: ListTransfersRequest) -> None:
+    async def execute(self, data: ListTransfersInput) -> None:
         try:
-            owner_id = OwnerId(request.owner_id)
-            period = Period(request.start, request.end)
-        except InvalidPeriodError as error:
-            self._presenter.present_invalid_period(
-                [{"field": f, "problem": p} for f, p in error.problems]
-            )
+            period = Period(data.start, data.end)
+        except InvalidValueError as error:
+            self.presenter.present_invalid("to", error.problem)
             return
 
-        transfers = await self._uow.transfers.list_all_between(owner_id, period)
-
-        from app.finance.application.dtos.transfers import TransferResponseDto
-
-        dto_list = [
-            TransferResponseDto(
-                id=t.id.value,
-                from_account_id=t.source.value,
-                to_account_id=t.destination.value,
-                amount_cents=t.amount.cents,
-                description=t.description.value,
-                occurred_on=t.occurred_on,
+        async with self.uow:
+            transfers = await self.uow.transfers.list_all_between(
+                OwnerId(data.owner_id), period
             )
-            for t in transfers
-        ]
-        self._presenter.present_listed(dto_list)
+
+        self.presenter.present_listed(
+            TransferListOutput(
+                start=period.start.isoformat(),
+                end=period.end.isoformat(),
+                transfers=[TransferOutput.from_transfer(t) for t in transfers],
+            )
+        )

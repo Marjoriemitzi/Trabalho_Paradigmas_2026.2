@@ -46,3 +46,14 @@ def test_abrir_uma_conta_cria_uma_identidade_nova() -> None:
     assert primeira.kind is AccountKind.WALLET
     assert primeira != segunda
     assert len({primeira, segunda, primeira}) == 2
+
+
+def test_renomear_troca_so_o_nome() -> None:
+    conta = Account.open(DONO, AccountName("Nubank"), AccountKind.CHECKING)
+    id_antes = conta.id
+
+    conta.rename(AccountName("Conta do banco"))
+
+    assert conta.name == AccountName("Conta do banco")
+    assert conta.kind is AccountKind.CHECKING
+    assert conta.id == id_antes
