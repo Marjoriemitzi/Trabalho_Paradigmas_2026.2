@@ -30,6 +30,16 @@ Na primeira subida, o banco cria sozinho o usuário da aplicação (`Backend/db/
 A API fica em http://127.0.0.1:8000. A documentação fica em `/docs` quando `ENABLE_DOCS=true`
 no `.env`.
 
+## CORS
+
+`CORS_ORIGINS` (no `.env`) lista as origens do frontend, separadas por vírgula, com esquema e sem
+barra no fim (`http://localhost:8001,http://127.0.0.1:8001`). Vazio, o CORS fica desligado.
+`*` é recusado.
+
+O token vai no cabeçalho `Authorization`, então `allow_credentials` fica `False`. Limitação: respostas
+`500` geradas pelo `ServerErrorMiddleware` do Starlette ficam fora do `CORSMiddleware` e não levam os
+cabeçalhos de CORS; o navegador mostra isso como erro de CORS, mas a causa é o erro `500`.
+
 ## Dia a dia
 
 ```bash
