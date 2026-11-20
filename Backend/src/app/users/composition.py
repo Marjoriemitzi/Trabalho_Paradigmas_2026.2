@@ -12,6 +12,11 @@ from app.users.application.use_cases.change_password import (
     ChangePasswordInteractor,
     ChangePasswordOutputPort,
 )
+from app.users.application.use_cases.delete_user import (
+    DeleteUserInputPort,
+    DeleteUserInteractor,
+    DeleteUserOutputPort,
+)
 from app.users.application.use_cases.get_current_user import (
     GetCurrentUserInputPort,
     GetCurrentUserInteractor,
@@ -29,6 +34,9 @@ from app.users.presentation.api.v1.controllers.authenticate_user_controller impo
 )
 from app.users.presentation.api.v1.controllers.change_password_controller import (
     ChangePasswordFactory,
+)
+from app.users.presentation.api.v1.controllers.delete_user_controller import (
+    DeleteUserFactory,
 )
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserFactory,
@@ -91,6 +99,19 @@ def change_password_factory(
             uow=SqlAlchemyUnitOfWork(session_factory),
             hasher=hasher,
             policy=policy,
+            presenter=presenter,
+        )
+
+    return build
+
+
+def delete_user_factory(
+    session_factory: async_sessionmaker[AsyncSession], hasher: PasswordHasher
+) -> DeleteUserFactory:
+    def build(presenter: DeleteUserOutputPort) -> DeleteUserInputPort:
+        return DeleteUserInteractor(
+            uow=SqlAlchemyUnitOfWork(session_factory),
+            hasher=hasher,
             presenter=presenter,
         )
 

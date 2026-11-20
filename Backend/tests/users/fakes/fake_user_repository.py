@@ -27,5 +27,8 @@ class FakeUserRepository:
         if guardado is not None and guardado.id == user.id:
             self._by_email[user.email] = user
 
+    async def remove(self, user: User) -> None:
+        self._by_email.pop(user.email, None)
+
     def stored(self, email: Email) -> User | None:
         return self._by_email.get(email)

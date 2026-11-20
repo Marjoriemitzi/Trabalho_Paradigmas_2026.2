@@ -6,6 +6,9 @@ from fastapi.responses import JSONResponse
 from app.users.presentation.api.v1.controllers.change_password_controller import (
     ChangePasswordController,
 )
+from app.users.presentation.api.v1.controllers.delete_user_controller import (
+    DeleteUserController,
+)
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserController,
 )
@@ -15,11 +18,13 @@ from app.users.presentation.api.v1.controllers.register_user_controller import (
 from app.users.presentation.api.v1.dependencies import (
     get_change_password_controller,
     get_current_user_controller,
+    get_delete_user_controller,
     get_register_user_controller,
 )
 from app.users.presentation.api.v1.schemas.change_password import (
     ChangePasswordRequest,
 )
+from app.users.presentation.api.v1.schemas.delete_user import DeleteUserRequest
 from app.users.presentation.api.v1.schemas.get_current_user import (
     UserProfileResponse,
 )
@@ -92,5 +97,29 @@ async def change_password(
     controller: Annotated[
         ChangePasswordController, Depends(get_change_password_controller)
     ],
+) -> Response:
+    return await controller.handle(body, current)
+
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description=(
+        "Apaga a conta de quem está logado e, em cascata, contas, transações e "
+        "transferências. Confirma com a senha atual, enviada no corpo do DELETE."
+    ),
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Sem token, token inválido ou usuário já apagado"
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Senha atual errada ou pedido mal formado"
+        },
+    },
+)
+async def delete_user(
+    body: DeleteUserRequest,
+    current: CurrentUser,
+    controller: Annotated[DeleteUserController, Depends(get_delete_user_controller)],
 ) -> Response:
     return await controller.handle(body, current)

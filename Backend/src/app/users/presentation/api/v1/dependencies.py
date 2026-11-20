@@ -8,6 +8,10 @@ from app.users.presentation.api.v1.controllers.change_password_controller import
     ChangePasswordController,
     ChangePasswordFactory,
 )
+from app.users.presentation.api.v1.controllers.delete_user_controller import (
+    DeleteUserController,
+    DeleteUserFactory,
+)
 from app.users.presentation.api.v1.controllers.get_current_user_controller import (
     GetCurrentUserController,
     GetCurrentUserFactory,
@@ -36,3 +40,8 @@ def get_current_user_controller(request: Request) -> GetCurrentUserController:
 def get_change_password_controller(request: Request) -> ChangePasswordController:
     factory: ChangePasswordFactory = request.app.state.change_password
     return ChangePasswordController(factory)
+
+
+def get_delete_user_controller(request: Request) -> DeleteUserController:
+    factory: DeleteUserFactory = request.app.state.delete_user
+    return DeleteUserController(factory)
