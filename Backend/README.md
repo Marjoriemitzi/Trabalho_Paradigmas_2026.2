@@ -30,6 +30,27 @@ Na primeira subida, o banco cria sozinho o usuário da aplicação (`Backend/db/
 A API fica em http://127.0.0.1:8000. A documentação fica em `/docs` quando `ENABLE_DOCS=true`
 no `.env`.
 
+## CORS
+
+`CORS_ORIGINS` (no `.env`) lista as origens do frontend, separadas por vírgula, com esquema e sem
+barra no fim (`http://localhost:8001,http://127.0.0.1:8001`). Vazio, o CORS fica desligado.
+`*` é recusado.
+
+O token vai no cabeçalho `Authorization`, então `allow_credentials` fica `False`. Limitação: respostas
+`500` geradas pelo `ServerErrorMiddleware` do Starlette ficam fora do `CORSMiddleware` e não levam os
+cabeçalhos de CORS; o navegador mostra isso como erro de CORS, mas a causa é o erro `500`.
+
+## Sessão (access e refresh token)
+
+`POST /api/v1/auth/login` devolve um access token curto (`JWT_EXPIRES_MINUTES`, padrão 15) e um
+refresh token opaco (`REFRESH_TOKEN_DAYS`, padrão 30). O banco guarda só o hash SHA-256 do refresh
+token.
+
+- `POST /api/v1/auth/refresh` troca o refresh token por um par novo (rotação). Apresentar um
+  refresh token já usado revoga a sessão inteira e responde `401 invalid_refresh_token`.
+- `POST /api/v1/auth/logout` revoga a sessão do refresh token enviado e é idempotente (`204`).
+- O access token já emitido vale até vencer (no máximo `JWT_EXPIRES_MINUTES`).
+
 ## Dia a dia
 
 ```bash

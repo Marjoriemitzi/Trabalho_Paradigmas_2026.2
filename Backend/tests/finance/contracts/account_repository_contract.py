@@ -85,3 +85,65 @@ class AccountRepositoryContract:
         await repository.add(conta(outro_dono, "Nubank"))
 
         assert len(await repository.list_by_owner(outro_dono)) == 1
+
+    async def test_update_muda_o_nome(
+        self, repository: AccountRepository, dono: OwnerId
+    ) -> None:
+        nubank = conta(dono, "Nubank")
+        await repository.add(nubank)
+        nubank.rename(AccountName("Conta do banco"))
+
+        await repository.update(nubank)
+
+        lida = await repository.get(dono, nubank.id)
+        assert lida is not None
+        assert lida.name == AccountName("Conta do banco")
+        assert lida.kind is nubank.kind
+
+    async def test_update_para_o_nome_de_outra_conta_e_recusado(
+        self, repository: AccountRepository, dono: OwnerId
+    ) -> None:
+        await repository.add(conta(dono, "Nubank"))
+        carteira = conta(dono, "Carteira")
+        await repository.add(carteira)
+        carteira.rename(AccountName("NUBANK"))
+
+        with pytest.raises(AccountNameTakenError):
+            await repository.update(carteira)
+
+    async def test_update_so_trocando_a_caixa_do_proprio_nome_e_aceito(
+        self, repository: AccountRepository, dono: OwnerId
+    ) -> None:
+        carteira = conta(dono, "carteira")
+        await repository.add(carteira)
+        carteira.rename(AccountName("Carteira"))
+
+        await repository.update(carteira)
+
+        lida = await repository.get(dono, carteira.id)
+        assert lida is not None
+        assert lida.name.text == "Carteira"
+
+    async def test_remove_apaga_so_a_conta_pedida(
+        self, repository: AccountRepository, dono: OwnerId
+    ) -> None:
+        nubank = conta(dono, "Nubank")
+        carteira = conta(dono, "Carteira")
+        await repository.add(nubank)
+        await repository.add(carteira)
+
+        await repository.remove(nubank)
+
+        assert await repository.get(dono, nubank.id) is None
+        assert await repository.get(dono, carteira.id) is not None
+
+    async def test_o_nome_de_uma_conta_apagada_pode_ser_usado_de_novo(
+        self, repository: AccountRepository, dono: OwnerId
+    ) -> None:
+        nubank = conta(dono, "Nubank")
+        await repository.add(nubank)
+        await repository.remove(nubank)
+
+        await repository.add(conta(dono, "Nubank"))
+
+        assert len(await repository.list_by_owner(dono)) == 1

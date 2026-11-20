@@ -1,4 +1,5 @@
 from app.users.application.dtos.authenticate_user import AuthenticateUserInput
+from app.users.application.session import hash_refresh_token
 from app.users.application.use_cases.authenticate_user import (
     AuthenticateUserInteractor,
 )
@@ -9,23 +10,23 @@ from tests.users.fakes.authenticate_user_presenter_spy import (
     AuthenticateUserPresenterSpy,
 )
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
-from tests.users.fakes.fake_token_issuer import FakeTokenIssuer
+from tests.users.fakes.fake_session_issuer import fake_session_issuer
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
 
 SENHA = "S3nha!Forte123"
 
 
 async def montar(
-    hasher: FakePasswordHasher | None = None,
+    hasher: FakePasswordHasher | None = None, uow: FakeUnitOfWork | None = None
 ) -> tuple[AuthenticateUserInteractor, AuthenticateUserPresenterSpy, User]:
-    uow = FakeUnitOfWork()
+    uow = uow or FakeUnitOfWork()
     ana = User.register(Email("ana@acme.com"), PasswordHash(f"hash-falso:{SENHA}"))
     await uow.users.add(ana)
     presenter = AuthenticateUserPresenterSpy()
     interactor = AuthenticateUserInteractor(
         uow=uow,
         hasher=hasher or FakePasswordHasher(),
-        tokens=FakeTokenIssuer(),
+        issuer=fake_session_issuer(),
         presenter=presenter,
     )
     return interactor, presenter, ana
@@ -38,8 +39,10 @@ async def test_credenciais_certas_recebem_um_token() -> None:
         AuthenticateUserInput(email="ana@acme.com", password=SENHA)
     )
 
-    assert presenter.token is not None
-    assert presenter.token.value == f"token-falso:{ana.id.value}"
+    assert presenter.session is not None
+    assert presenter.session.access_token.value == f"token-falso:{ana.id.value}"
+    assert presenter.session.refresh_token == "refresh-falso-1"
+    assert presenter.session.refresh_expires_in == 30 * 86400
 
 
 async def test_senha_errada_e_recusada_sem_token() -> None:
@@ -48,7 +51,7 @@ async def test_senha_errada_e_recusada_sem_token() -> None:
     await interactor.execute(AuthenticateUserInput(email="ana@acme.com", password="x"))
 
     assert presenter.invalid_credentials is True
-    assert presenter.token is None
+    assert presenter.session is None
 
 
 async def test_email_desconhecido_recebe_a_mesma_resposta_da_senha_errada() -> None:
@@ -59,7 +62,7 @@ async def test_email_desconhecido_recebe_a_mesma_resposta_da_senha_errada() -> N
     )
 
     assert presenter.invalid_credentials is True
-    assert presenter.token is None
+    assert presenter.session is None
 
 
 class HasherQueContaOTrabalho(FakePasswordHasher):
@@ -101,3 +104,29 @@ async def test_senha_vazia_e_so_credencial_invalida() -> None:
     await interactor.execute(AuthenticateUserInput(email="ana@acme.com", password=""))
 
     assert presenter.invalid_credentials is True
+
+
+async def test_login_certo_grava_so_o_hash_do_refresh_token() -> None:
+    uow = FakeUnitOfWork()
+    interactor, presenter, ana = await montar(uow=uow)
+
+    await interactor.execute(
+        AuthenticateUserInput(email="ana@acme.com", password=SENHA)
+    )
+
+    assert presenter.session is not None
+    [gravado] = uow.refresh_tokens.stored.values()
+    assert gravado.user_id == ana.id
+    assert gravado.token_hash == hash_refresh_token(presenter.session.refresh_token)
+    assert gravado.token_hash != presenter.session.refresh_token
+    assert uow.committed is True
+
+
+async def test_login_recusado_nao_grava_nenhum_refresh_token() -> None:
+    uow = FakeUnitOfWork()
+    interactor, _, _ = await montar(uow=uow)
+
+    await interactor.execute(AuthenticateUserInput(email="ana@acme.com", password="x"))
+
+    assert uow.refresh_tokens.stored == {}
+    assert uow.committed is False

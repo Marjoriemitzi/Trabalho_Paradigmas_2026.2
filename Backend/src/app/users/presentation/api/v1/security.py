@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.shared.presentation.api.errors import ApiError
 from app.users.application.ports.token_verifier import AuthenticatedUser, TokenVerifier
+from app.users.application.ports.user_existence import UserExistence
 
 _bearer = HTTPBearer(
     auto_error=False, description="O access_token devolvido por /api/v1/auth/login"
@@ -27,7 +28,7 @@ def invalid_token() -> ApiError:
     )
 
 
-def require_authenticated_user(
+async def require_authenticated_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> AuthenticatedUser:
@@ -36,6 +37,9 @@ def require_authenticated_user(
     verifier: TokenVerifier = request.app.state.token_verifier
     current = verifier.verify(credentials.credentials)
     if current is None:
+        raise invalid_token()
+    existence: UserExistence = request.app.state.user_existence
+    if not await existence.exists(current.id):
         raise invalid_token()
     return current
 

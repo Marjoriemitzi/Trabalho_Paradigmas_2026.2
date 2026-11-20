@@ -185,3 +185,83 @@ class TransferRepositoryContract:
         self, repository: TransferRepository, dono: OwnerId
     ) -> None:
         assert await repository.flows_by_account(dono) == {}
+
+    async def test_lista_todas_as_do_dono_no_periodo_de_todas_as_contas_em_ordem(
+        self,
+        repository: TransferRepository,
+        dono: OwnerId,
+        outro_dono: OwnerId,
+        conta: AccountId,
+        outra_conta: AccountId,
+        terceira_conta: AccountId,
+        contas_do_outro: tuple[AccountId, AccountId],
+    ) -> None:
+        tarde = transferir(dono, conta, outra_conta, dia=date(2026, 11, 20))
+        cedo = transferir(dono, terceira_conta, conta, dia=date(2026, 11, 1))
+        meio = transferir(dono, outra_conta, terceira_conta)
+        for t in (
+            tarde,
+            cedo,
+            meio,
+            transferir(dono, conta, outra_conta, dia=date(2026, 10, 31)),
+            transferir(dono, conta, outra_conta, dia=date(2026, 12, 1)),
+            transferir(outro_dono, *contas_do_outro),
+        ):
+            await repository.add(t)
+
+        lidas = await repository.list_all_between(dono, NOVEMBRO)
+
+        assert [t.id for t in lidas] == [cedo.id, meio.id, tarde.id]
+
+    async def test_update_muda_todos_os_campos(
+        self,
+        repository: TransferRepository,
+        dono: OwnerId,
+        conta: AccountId,
+        outra_conta: AccountId,
+        terceira_conta: AccountId,
+    ) -> None:
+        gravada = transferir(dono, conta, outra_conta)
+        await repository.add(gravada)
+        gravada.revise(
+            source=terceira_conta,
+            destination=conta,
+            amount=Money(99900),
+            description=Description("Corrigida"),
+            occurred_on=date(2026, 11, 15),
+        )
+
+        await repository.update(gravada)
+
+        lida = await repository.get(dono, gravada.id)
+        assert lida is not None
+        assert lida.source == terceira_conta
+        assert lida.destination == conta
+        assert lida.amount == Money(99900)
+        assert lida.description == Description("Corrigida")
+        assert lida.occurred_on == date(2026, 11, 15)
+
+    async def test_update_nao_mexe_nas_outras_transferencias(
+        self,
+        repository: TransferRepository,
+        dono: OwnerId,
+        conta: AccountId,
+        outra_conta: AccountId,
+    ) -> None:
+        alterada = transferir(dono, conta, outra_conta, 1000)
+        intacta = transferir(dono, conta, outra_conta, 2000)
+        await repository.add(alterada)
+        await repository.add(intacta)
+        alterada.revise(
+            source=conta,
+            destination=outra_conta,
+            amount=Money(5000),
+            description=Description("Outra"),
+            occurred_on=date(2026, 11, 11),
+        )
+
+        await repository.update(alterada)
+
+        lida = await repository.get(dono, intacta.id)
+        assert lida is not None
+        assert lida.amount == Money(2000)

@@ -1,22 +1,24 @@
-from sqlalchemy import Column, DateTime, ForeignKey, String, text
-from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from datetime import datetime
+
+from sqlalchemy import CHAR, DateTime, ForeignKey, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.infrastructure.persistence.database import Base
 
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
-    id = Column(
-        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
     )
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    family_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    token_hash = Column(String(64), nullable=False, unique=True)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    used_at = Column(DateTime(timezone=True), nullable=True)
-    revoked_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    family_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    token_hash: Mapped[str] = mapped_column(CHAR(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )

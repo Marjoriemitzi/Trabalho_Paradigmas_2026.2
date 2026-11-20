@@ -15,7 +15,7 @@ from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from app.users.presentation.api.v1.routers.auth import router
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
-from tests.users.fakes.fake_token_issuer import FakeTokenIssuer
+from tests.users.fakes.fake_session_issuer import fake_session_issuer
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
 
 URL = "/api/v1/auth/login"
@@ -34,7 +34,7 @@ async def client() -> AsyncIterator[AsyncClient]:
         return AuthenticateUserInteractor(
             uow=uow,
             hasher=FakePasswordHasher(),
-            tokens=FakeTokenIssuer(),
+            issuer=fake_session_issuer(),
             presenter=presenter,
         )
 
@@ -54,6 +54,8 @@ async def test_login_certo_responde_200_com_token(client: AsyncClient) -> None:
     assert resposta.status_code == 200
     assert resposta.json()["token_type"] == "bearer"
     assert resposta.json()["access_token"].startswith("token-falso:")
+    assert resposta.json()["refresh_token"] == "refresh-falso-1"
+    assert resposta.json()["refresh_expires_in"] == 30 * 86400
     assert resposta.headers["cache-control"] == "no-store"
 
 

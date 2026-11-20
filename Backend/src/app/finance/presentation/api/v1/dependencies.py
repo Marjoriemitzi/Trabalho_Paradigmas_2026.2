@@ -3,8 +3,12 @@ from fastapi import Request
 from app.finance.presentation.api.v1.controllers.accounts_controllers import (
     CreateAccountController,
     CreateAccountFactory,
+    DeleteAccountController,
+    DeleteAccountFactory,
     ListAccountsController,
     ListAccountsFactory,
+    RenameAccountController,
+    RenameAccountFactory,
 )
 from app.finance.presentation.api.v1.controllers.categories_controller import (
     ListCategoriesController,
@@ -29,6 +33,10 @@ from app.finance.presentation.api.v1.controllers.transfers_controllers import (
     CreateTransferFactory,
     DeleteTransferController,
     DeleteTransferFactory,
+    ListTransfersController,
+    ListTransfersFactory,
+    UpdateTransferController,
+    UpdateTransferFactory,
 )
 
 
@@ -75,3 +83,23 @@ def get_create_transfer_controller(request: Request) -> CreateTransferController
 def get_delete_transfer_controller(request: Request) -> DeleteTransferController:
     factory: DeleteTransferFactory = request.app.state.delete_transfer
     return DeleteTransferController(factory)
+
+
+def get_rename_account_controller(request: Request) -> RenameAccountController:
+    factory: RenameAccountFactory = request.app.state.rename_account
+    return RenameAccountController(factory)
+
+
+def get_delete_account_controller(request: Request) -> DeleteAccountController:
+    factory: DeleteAccountFactory = request.app.state.delete_account
+    return DeleteAccountController(factory)
+
+
+def get_update_transfer_controller(request: Request) -> UpdateTransferController:
+    factory: UpdateTransferFactory = request.app.state.update_transfer
+    return UpdateTransferController(factory)
+
+
+def get_list_transfers_controller(request: Request) -> ListTransfersController:
+    factory: ListTransfersFactory = request.app.state.list_transfers
+    return ListTransfersController(factory)

@@ -3,7 +3,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, SecretStr
 
 from app.users.application.dtos.authenticate_user import AuthenticateUserInput
-from app.users.application.ports.token_issuer import AccessToken
+from app.users.application.session import Session
 
 
 class AuthenticateUserRequest(BaseModel):
@@ -18,11 +18,18 @@ class AuthenticateUserRequest(BaseModel):
         )
 
 
-class AccessTokenResponse(BaseModel):
+class SessionResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     expires_in: int
+    refresh_token: str
+    refresh_expires_in: int
 
     @classmethod
-    def from_token(cls, token: AccessToken) -> Self:
-        return cls(access_token=token.value, expires_in=token.expires_in)
+    def from_session(cls, session: Session) -> Self:
+        return cls(
+            access_token=session.access_token.value,
+            expires_in=session.access_token.expires_in,
+            refresh_token=session.refresh_token,
+            refresh_expires_in=session.refresh_expires_in,
+        )

@@ -47,6 +47,22 @@ class Transfer:
     def touches(self, account: AccountId) -> bool:
         return account in (self.source, self.destination)
 
+    def revise(
+        self,
+        source: AccountId,
+        destination: AccountId,
+        amount: Money,
+        description: Description,
+        occurred_on: date,
+    ) -> None:
+        if source == destination:
+            raise InvalidValueError("same_account")
+        self.source = source
+        self.destination = destination
+        self.amount = amount
+        self.description = description
+        self.occurred_on = occurred_on
+
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Transfer) and other.id == self.id
 

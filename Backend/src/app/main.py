@@ -3,19 +3,24 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.finance.application.ports.transaction_check import TransactionCheck
 from app.finance.composition import (
     create_account_factory,
     create_transfer_factory,
+    delete_account_factory,
     delete_transaction_factory,
     delete_transfer_factory,
     get_statement_factory,
     list_accounts_factory,
     list_categories_factory,
+    list_transfers_factory,
     record_transaction_factory,
+    rename_account_factory,
     update_transaction_factory,
+    update_transfer_factory,
 )
 from app.finance.infrastructure.prolog.prolog_categorizer import PrologCategorizer
 from app.finance.presentation.api.v1.routers import (
@@ -27,17 +32,28 @@ from app.finance.presentation.api.v1.routers import (
 from app.shared.infrastructure.config.settings import Settings
 from app.shared.infrastructure.prolog.gateway import PrologGateway
 from app.shared.presentation.api.error_handlers import install_error_handlers
+from app.shared.presentation.api.middleware import CacheControlMiddleware
+from app.users.application.session import SessionIssuer
 from app.users.composition import (
     authenticate_user_factory,
+    change_password_factory,
+    delete_user_factory,
     get_current_user_factory,
+    logout_factory,
+    refresh_session_factory,
     register_user_factory,
 )
+from app.users.infrastructure.persistence.user_existence import SqlUserExistence
 from app.users.infrastructure.prolog.prolog_password_policy import (
     PrologPasswordPolicy,
 )
 from app.users.infrastructure.security.argon2_hasher import Argon2Hasher
 from app.users.infrastructure.security.jwt_token_issuer import JwtTokenIssuer
 from app.users.infrastructure.security.jwt_token_verifier import JwtTokenVerifier
+from app.users.infrastructure.security.secrets_refresh_token_generator import (
+    SecretsRefreshTokenGenerator,
+)
+from app.users.infrastructure.system_clock import SystemClock
 from app.users.presentation.api.v1.routers import auth, users
 
 
@@ -53,22 +69,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session_factory = async_sessionmaker(engine, expire_on_commit=False)
         prolog = PrologGateway()
         hasher = Argon2Hasher()
+        policy = PrologPasswordPolicy(prolog, settings.prolog_rules_dir)
 
         app.state.register_user = register_user_factory(
             session_factory=session_factory,
             hasher=hasher,
-            policy=PrologPasswordPolicy(prolog, settings.prolog_rules_dir),
+            policy=policy,
         )
+        app.state.change_password = change_password_factory(
+            session_factory=session_factory, hasher=hasher, policy=policy
+        )
+        app.state.delete_user = delete_user_factory(
+            session_factory=session_factory, hasher=hasher
+        )
+        app.state.user_existence = SqlUserExistence(session_factory)
         jwt_secret = settings.jwt_secret.get_secret_value()
 
-        app.state.authenticate_user = authenticate_user_factory(
-            session_factory=session_factory,
-            hasher=hasher,
+        clock = SystemClock()
+        issuer = SessionIssuer(
             tokens=JwtTokenIssuer(
                 secret=jwt_secret,
                 expires_in=timedelta(minutes=settings.jwt_expires_minutes),
             ),
+            generator=SecretsRefreshTokenGenerator(),
+            clock=clock,
+            refresh_ttl=timedelta(days=settings.refresh_token_days),
         )
+        app.state.authenticate_user = authenticate_user_factory(
+            session_factory=session_factory, hasher=hasher, issuer=issuer
+        )
+        app.state.refresh_session = refresh_session_factory(
+            session_factory=session_factory, issuer=issuer, clock=clock
+        )
+        app.state.logout = logout_factory(session_factory, clock)
         app.state.token_verifier = JwtTokenVerifier(secret=jwt_secret)
         app.state.get_current_user = get_current_user_factory(session_factory)
 
@@ -83,9 +116,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.delete_transaction = delete_transaction_factory(session_factory)
         app.state.create_transfer = create_transfer_factory(session_factory)
         app.state.delete_transfer = delete_transfer_factory(session_factory)
+        app.state.update_transfer = update_transfer_factory(session_factory)
+        app.state.list_transfers = list_transfers_factory(session_factory)
         app.state.get_statement = get_statement_factory(session_factory)
         app.state.create_account = create_account_factory(session_factory)
         app.state.list_accounts = list_accounts_factory(session_factory)
+        app.state.rename_account = rename_account_factory(session_factory)
+        app.state.delete_account = delete_account_factory(session_factory)
         app.state.list_categories = list_categories_factory(session_factory)
         yield
         await engine.dispose()
@@ -98,6 +135,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs else None,
     )
     install_error_handlers(app)
+    app.add_middleware(CacheControlMiddleware)
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=False,
+            expose_headers=["Retry-After"],
+            max_age=600,
+        )
     app.include_router(users.router)
     app.include_router(auth.router)
     app.include_router(accounts.router)

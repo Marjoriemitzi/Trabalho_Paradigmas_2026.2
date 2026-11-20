@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from app.finance.domain.entities.account import Account
 from app.finance.domain.exceptions import AccountNameTakenError
 from app.finance.domain.value_objects.account_id import AccountId
@@ -21,6 +23,20 @@ class FakeAccountRepository:
         return sorted(do_dono, key=lambda a: a.name.key)
 
     async def get(self, owner: OwnerId, account_id: AccountId) -> Account | None:
-        return next(
+        guardada = next(
             (a for a in self.stored if a.owner == owner and a.id == account_id), None
         )
+        return None if guardada is None else replace(guardada)
+
+    async def update(self, account: Account) -> None:
+        if any(
+            a.owner == account.owner
+            and a.id != account.id
+            and a.name.key == account.name.key
+            for a in self.stored
+        ):
+            raise AccountNameTakenError(account.name.text)
+        self.stored = [account if a.id == account.id else a for a in self.stored]
+
+    async def remove(self, account: Account) -> None:
+        self.stored = [a for a in self.stored if a.id != account.id]
