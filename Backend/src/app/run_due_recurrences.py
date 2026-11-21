@@ -15,6 +15,7 @@ import sys
 from collections.abc import Sequence
 from datetime import date
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.finance.application.use_cases.run_due_recurrences import RunReport
@@ -63,7 +64,7 @@ async def _loop(settings: Settings, every: int) -> None:
         try:
             sys.stdout.write(_summary(await run_once(settings)) + "\n")
             sys.stdout.flush()
-        except OSError:
+        except (OSError, SQLAlchemyError):
             logger.exception("Falha ao processar as recorrências; tenta de novo.")
         await asyncio.sleep(every)
 

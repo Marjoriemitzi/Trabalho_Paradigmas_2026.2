@@ -1,0 +1,104 @@
+name: backend
+
+# Todo PR para a main e todo push na main que mexa no backend rodam, dentro do Docker, as
+# mesmas checagens do desenvolvedor. O filtro de caminhos fica no job `changes` (e não em
+# `on.<evento>.paths`): um check obrigatório que não roda deixa o PR travado em
+# "Expected — Waiting for status", enquanto um job pulado por `if:` conta como sucesso.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.filtro.outputs.backend }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: filtro
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE_DO_PR: ${{ github.event.pull_request.base.sha }}
+          ANTES_DO_PUSH: ${{ github.event.before }}
+          DEPOIS: ${{ github.sha }}
+        run: |
+          set -eu
+          if [ "$EVENTO" = "pull_request" ]; then
+            base="$BASE_DO_PR"
+          else
+            base="$ANTES_DO_PUSH"
+          fi
+          # Branch nova ou histórico que não existe mais: na dúvida, roda.
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --name-only "$base" "$DEPOIS" \
+            | grep -Eq '^(Backend/|docker-compose\.yml$|\.env\.example$|\.github/workflows/backend\.yml$)'; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Os segredos são gerados aqui, a cada execução: nada fixo no workflow nem no repositório.
+      - name: Gerar o .env
+        run: |
+          set -eu
+          cp .env.example .env
+          chmod 600 .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/; s/^APP_DB_PASSWORD=.*/APP_DB_PASSWORD=$(openssl rand -hex 32)/; s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/; s/^ENABLE_DOCS=.*/ENABLE_DOCS=false/" .env
+
+      - name: Construir as imagens
+        run: docker compose build
+
+      # Sobe só o banco e a API: o `scheduler` consulta tabelas que ainda não existem antes
+      # das migrations, e o job só precisa dele em produção.
+      - name: Subir o banco e a API
+        run: docker compose up -d --wait db app
+
+      - name: Migrations (upgrade head)
+        run: docker compose exec -T app alembic upgrade head
+
+      - name: Models e migrations sem diferença
+        run: docker compose exec -T app alembic check
+
+      - name: Todo downgrade funciona (downgrade base e upgrade head)
+        run: |
+          docker compose exec -T app alembic downgrade base
+          docker compose exec -T app alembic upgrade head
+
+      - name: Formatação
+        run: docker compose exec -T app ruff format --check .
+
+      - name: Lint, tipos, testes e auditoria
+        run: docker compose exec -T app task check
+
+      # Nunca imprima o .env.
+      - name: Logs dos containers
+        if: failure()
+        run: docker compose logs --no-color

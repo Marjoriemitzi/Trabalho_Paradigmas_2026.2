@@ -150,6 +150,9 @@ docker compose exec app task audit         # vulnerabilidades nas dependências
 docker compose run --rm --no-deps tools ruff format .     # formatar o código
 ```
 
+O CI do GitHub Actions (veja o [README da raiz](../README.md#ci)) roda os mesmos comandos desta
+seção, mais `alembic check` e o ciclo `downgrade base` / `upgrade head`.
+
 ## Migrations
 
 ```bash

@@ -37,7 +37,7 @@ Ele nunca vai para o git.
 
 ```bash
 cp .env.example .env && chmod 600 .env
-sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/; s/^APP_DB_PASSWORD=.*/APP_DB_PASSWORD=$(openssl rand -hex 32)/" .env
+sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/; s/^APP_DB_PASSWORD=.*/APP_DB_PASSWORD=$(openssl rand -hex 32)/; s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
 ```
 
 **2. Construa e suba os containers.**
@@ -70,3 +70,17 @@ docker compose logs -f app                 # logs da API
 ```
 
 Antes de cada commit, confira com `git status` que o `.env` não aparece.
+
+## CI
+
+O workflow [`.github/workflows/backend.yml`](.github/workflows/backend.yml) roda em todo PR para a
+`main` e em todo push na `main` que mexa em `Backend/`, `docker-compose.yml`, `.env.example` ou no
+próprio workflow. Ele gera o `.env` com segredos novos, sobe o banco e a API no Docker e roda, nesta
+ordem: `alembic upgrade head`, `alembic check`, `alembic downgrade base` + `upgrade head`,
+`ruff format --check` e `task check` (ruff, mypy, pytest e pip-audit). O resultado aparece na aba
+**Checks** do PR; o check se chama `backend`. Um PR que só mexe em `Frontend/` fica verde sem rodar
+o job.
+
+O `pip-audit` consulta a internet: se aparecer uma vulnerabilidade nova numa dependência, o CI fica
+vermelho mesmo sem mudança de código. Isso é esperado, e a correção é atualizar a dependência
+(`docker compose run --rm --no-deps tools poetry update --lock <pacote>`).
