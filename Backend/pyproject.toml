@@ -42,16 +42,46 @@ src = ["src", "tests"]
 extend-exclude = ["migrations"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "S", "C4", "SIM", "RUF"]
+select = [
+    "E", "F", "I", "N", "UP", "B", "S", "C4", "SIM", "RUF",
+    "ANN", "FBT", "PLR", "TCH", "PT", "ARG", "ERA",
+]
+
+# ANN101/ANN102 (anotar self e cls) e PT004 estão obsoletas no ruff e não ajudam o mypy.
+ignore = ["ANN101", "ANN102", "PT004"]
+
+[tool.ruff.lint.pylint]
+# Os construtores do domínio (record, revise) levam 6 a 7 campos de verdade.
+max-args = 8
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106"]
+# Nos testes: asserts, segredos de exemplo, números nas asserções (status HTTP, centavos) e
+# fixtures pedidas só pelo efeito colateral (banco migrado, variáveis de ambiente).
+"tests/**" = ["S101", "S105", "S106", "PLR2004", "ARG001", "ARG002"]
+# O framework dita a assinatura: `request`/`exc` dos handlers e `current` das rotas, que
+# existe só para exigir o login.
+"src/app/shared/presentation/api/error_handlers.py" = ["ARG001"]
+"src/app/**/routers/*.py" = ["ARG001"]
 
 [tool.mypy]
 python_version = "3.12"
 mypy_path = "src"
 strict = true
+warn_unreachable = true
+strict_equality = true
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+    "possibly-undefined",
+    "explicit-override",
+]
 plugins = ["pydantic.mypy"]
+
+# Nos testes, as fixtures que sobrescrevem as dos contratos não ganham nada com @override.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["explicit-override"]
 
 [[tool.mypy.overrides]]
 module = "pyswip.*"
@@ -69,7 +99,7 @@ filterwarnings = [
     "error::RuntimeWarning",
     "error::pytest.PytestUnraisableExceptionWarning",
 ]
-addopts = "--cov=app --cov-report=term-missing"
+addopts = "--strict-markers --cov=app --cov-report=term-missing"
 
 [tool.taskipy.tasks]
 run = "uvicorn app.main:app --reload"
@@ -78,4 +108,5 @@ lint = "ruff check ."
 format = "ruff format ."
 typecheck = "mypy src tests"
 audit = "pip-audit --skip-editable --progress-spinner off"
+openapi = "python -m app.export_openapi openapi/openapi.json"
 check = "ruff check . && mypy src tests && pytest && pip-audit --skip-editable --progress-spinner off"

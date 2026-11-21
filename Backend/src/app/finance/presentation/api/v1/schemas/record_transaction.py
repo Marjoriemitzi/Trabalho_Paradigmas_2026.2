@@ -67,6 +67,7 @@ class RecordedTransactionResponse(BaseModel):
     description: str
     category: str
     occurred_on: str
+    recurrence_id: str | None
     warnings: list[TransactionWarningResponse]
 
     @classmethod
@@ -79,6 +80,7 @@ class RecordedTransactionResponse(BaseModel):
             description=transaction.description,
             category=transaction.category,
             occurred_on=transaction.occurred_on,
+            recurrence_id=transaction.recurrence_id,
             warnings=[
                 TransactionWarningResponse.from_warning(w) for w in transaction.warnings
             ],

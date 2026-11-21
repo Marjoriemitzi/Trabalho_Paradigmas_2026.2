@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.create_account import (
     AccountOutput,
@@ -31,6 +31,7 @@ class CreateAccountInteractor(CreateAccountInputPort):
     uow: UnitOfWork
     presenter: CreateAccountOutputPort
 
+    @override
     async def execute(self, data: CreateAccountInput) -> None:
         try:
             name = read_field("name", AccountName, data.name)

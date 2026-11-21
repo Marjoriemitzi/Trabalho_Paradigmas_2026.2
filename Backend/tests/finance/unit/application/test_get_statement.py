@@ -103,6 +103,7 @@ async def test_extrato_traz_saldo_anterior_movimento_e_saldo_final() -> None:
         description="Lançamento",
         category="outros",
         occurred_on="2026-11-07",
+        recurrence_id=None,
     )
 
 

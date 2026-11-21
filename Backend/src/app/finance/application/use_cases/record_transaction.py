@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.record_transaction import (
     RecordedTransaction,
@@ -8,12 +8,8 @@ from app.finance.application.dtos.record_transaction import (
 from app.finance.application.fields import InvalidFieldError
 from app.finance.application.ports.transaction_check import TransactionCheck
 from app.finance.application.ports.unit_of_work import UnitOfWork
-from app.finance.application.transaction_fields import (
-    read_transaction_fields,
-    reference_problem,
-    run_checks,
-)
-from app.finance.domain.entities.transaction import Transaction
+from app.finance.application.recording import record_in
+from app.finance.application.transaction_fields import read_transaction_fields
 from app.finance.domain.services.categorizer import Categorizer
 from app.finance.domain.value_objects.owner_id import OwnerId
 
@@ -35,6 +31,7 @@ class RecordTransactionInteractor(RecordTransactionInputPort):
     presenter: RecordTransactionOutputPort
     checks: tuple[TransactionCheck, ...] = ()
 
+    @override
     async def execute(self, data: RecordTransactionInput) -> None:
         try:
             campos = read_transaction_fields(data, self.categorizer)
@@ -44,23 +41,19 @@ class RecordTransactionInteractor(RecordTransactionInputPort):
 
         owner = OwnerId(data.owner_id)
         async with self.uow:
-            problema = await reference_problem(self.uow, owner, campos)
-            if problema is not None:
+            resultado = await record_in(self.uow, owner, campos, self.checks)
+            if resultado.transaction is None:
+                problema = resultado.problem
+                if problema is None:
+                    raise RuntimeError(
+                        "O lançamento não devolveu transação nem problema."
+                    )
                 self.presenter.present_invalid(problema.field, problema.problem)
                 return
-            transaction = Transaction.record(
-                owner=owner,
-                account=campos.account,
-                kind=campos.kind,
-                amount=campos.amount,
-                description=campos.description,
-                category=campos.category,
-                occurred_on=campos.occurred_on,
-            )
-            await self.uow.transactions.add(transaction)
-            avisos = await run_checks(self.checks, transaction, self.uow)
             await self.uow.commit()
 
         self.presenter.present_recorded(
-            RecordedTransaction.from_transaction(transaction, avisos)
+            RecordedTransaction.from_transaction(
+                resultado.transaction, resultado.warnings
+            )
         )

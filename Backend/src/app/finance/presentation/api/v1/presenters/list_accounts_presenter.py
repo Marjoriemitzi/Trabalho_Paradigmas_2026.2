@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -18,6 +20,7 @@ class ListAccountsHttpPresenter(ListAccountsOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_accounts(self, accounts: tuple[AccountSummary, ...]) -> None:
         corpo = AccountListResponse(
             accounts=[AccountSummaryResponse.from_summary(a) for a in accounts]

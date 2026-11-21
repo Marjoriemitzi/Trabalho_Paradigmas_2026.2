@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -16,6 +18,7 @@ class RefreshSessionHttpPresenter(RefreshSessionOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_refreshed(self, session: Session) -> None:
         corpo = SessionResponse.from_session(session).model_dump()
         self._response = JSONResponse(
@@ -24,6 +27,7 @@ class RefreshSessionHttpPresenter(RefreshSessionOutputPort):
             headers={"Cache-Control": "no-store"},
         )
 
+    @override
     def present_invalid_refresh_token(self) -> None:
         self._response = error_response(
             status.HTTP_401_UNAUTHORIZED, "invalid_refresh_token"

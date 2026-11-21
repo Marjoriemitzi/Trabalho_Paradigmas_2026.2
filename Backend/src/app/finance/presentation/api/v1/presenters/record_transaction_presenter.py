@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -20,10 +22,12 @@ class RecordTransactionHttpPresenter(RecordTransactionOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_recorded(self, transaction: RecordedTransaction) -> None:
         corpo = RecordedTransactionResponse.from_output(transaction).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_201_CREATED)
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,

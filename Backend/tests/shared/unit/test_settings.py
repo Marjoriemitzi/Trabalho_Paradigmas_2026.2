@@ -17,6 +17,8 @@ def ambiente(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
     monkeypatch.delenv("JWT_EXPIRES_MINUTES", raising=False)
     monkeypatch.delenv("REFRESH_TOKEN_DAYS", raising=False)
     monkeypatch.delenv("ENABLE_DOCS", raising=False)
+    monkeypatch.delenv("TIMEZONE", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
     return monkeypatch
 
 
@@ -95,3 +97,38 @@ def test_cors_texto_vazio_vira_lista_vazia(ambiente: pytest.MonkeyPatch) -> None
     ambiente.setenv("CORS_ORIGINS", "   ")
 
     assert Settings().cors_origins == []
+
+
+def test_o_fuso_padrao_e_o_de_sao_paulo(ambiente: pytest.MonkeyPatch) -> None:
+    assert Settings().timezone == "America/Sao_Paulo"
+
+
+def test_o_fuso_vem_do_ambiente(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("TIMEZONE", "UTC")
+
+    assert Settings().timezone == "UTC"
+
+
+def test_recusa_fuso_desconhecido(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("TIMEZONE", "Marte/Olimpo")
+
+    with pytest.raises(ValidationError, match="Fuso horário desconhecido"):
+        Settings()
+
+
+def test_o_ambiente_padrao_e_production(ambiente: pytest.MonkeyPatch) -> None:
+    assert Settings().app_env == "production"
+
+
+@pytest.mark.parametrize("nome", ["development", "test", "production"])
+def test_aceita_os_tres_ambientes(ambiente: pytest.MonkeyPatch, nome: str) -> None:
+    ambiente.setenv("APP_ENV", nome)
+
+    assert Settings().app_env == nome
+
+
+def test_recusa_ambiente_desconhecido(ambiente: pytest.MonkeyPatch) -> None:
+    ambiente.setenv("APP_ENV", "staging")
+
+    with pytest.raises(ValidationError):
+        Settings()

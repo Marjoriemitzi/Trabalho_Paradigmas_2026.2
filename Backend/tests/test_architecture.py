@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 APP = Path(__file__).resolve().parents[1] / "src" / "app"
-CONTEXTOS = ("users", "finance")
+CONTEXTOS = ("users", "finance", "shared")
 FRAMEWORKS = (
     "fastapi",
     "starlette",

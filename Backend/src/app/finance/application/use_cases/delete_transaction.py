@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.change_transaction import DeleteTransactionInput
 from app.finance.application.ports.unit_of_work import UnitOfWork
@@ -22,6 +22,7 @@ class DeleteTransactionInteractor(DeleteTransactionInputPort):
     uow: UnitOfWork
     presenter: DeleteTransactionOutputPort
 
+    @override
     async def execute(self, data: DeleteTransactionInput) -> None:
         async with self.uow:
             transaction = await self.uow.transactions.get(

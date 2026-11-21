@@ -11,7 +11,7 @@ class Description:
 
     def __post_init__(self) -> None:
         limpo = self.text.strip()
-        if not limpo:
+        if limpo == "":
             raise InvalidValueError("blank")
         if len(limpo) > MAX_LENGTH:
             raise InvalidValueError("too_long")

@@ -92,7 +92,8 @@ def test_recusa_inteiro_fora_de_64_bits(prolog: PrologGateway, valor: int) -> No
 
 @pytest.mark.parametrize("valor", [True, False, 1.5, None, b"azul"])
 def test_recusa_argumento_que_nao_e_texto_nem_inteiro(
-    prolog: PrologGateway, valor: Any
+    prolog: PrologGateway,
+    valor: Any,  # noqa: ANN401 - o teste passa de propósito tipos que a API recusa
 ) -> None:
     with pytest.raises(TypeError):
         prolog.holds("inteiro", valor)

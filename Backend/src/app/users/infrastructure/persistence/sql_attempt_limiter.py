@@ -65,7 +65,7 @@ class SqlAttemptLimiter:
             await session.commit()
 
     async def reset(self, rules: Sequence[AttemptRule]) -> None:
-        if not rules:
+        if len(rules) == 0:
             return
         async with self._session_factory() as session:
             await session.execute(

@@ -97,9 +97,12 @@ class RefreshTokenRepositoryContract:
         a = await repository.get_by_hash(HASH_A)
         b = await repository.get_by_hash(HASH_B)
         c = await repository.get_by_hash(HASH_C)
-        assert a is not None and a.revoked_at == AGORA
-        assert b is not None and b.revoked_at == AGORA
-        assert c is not None and c.revoked_at is None
+        assert a is not None
+        assert a.revoked_at == AGORA
+        assert b is not None
+        assert b.revoked_at == AGORA
+        assert c is not None
+        assert c.revoked_at is None
 
     async def test_delete_expired_before_apaga_so_os_vencidos_antes_do_limite(
         self, repository: RefreshTokenRepository, usuario: UserId

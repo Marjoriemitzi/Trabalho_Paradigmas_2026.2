@@ -3,6 +3,7 @@ from datetime import date
 import pytest
 
 from app.finance.domain.entities.transaction import Transaction
+from app.finance.domain.exceptions import DuplicateOccurrenceError
 from app.finance.domain.repositories.transaction_repository import (
     TransactionRepository,
 )
@@ -12,6 +13,7 @@ from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.money import Money
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
+from app.finance.domain.value_objects.recurrence_id import RecurrenceId
 from app.finance.domain.value_objects.totals import Totals
 from app.finance.domain.value_objects.transaction_id import TransactionId
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
@@ -62,6 +64,10 @@ class TransactionRepositoryContract:
 
     @pytest.fixture
     def conta_do_outro(self, outro_dono: OwnerId) -> AccountId:
+        raise NotImplementedError
+
+    @pytest.fixture
+    def recorrencia(self, dono: OwnerId, conta: AccountId) -> RecurrenceId:
         raise NotImplementedError
 
     async def test_quem_nao_lancou_nada_tem_extrato_vazio(
@@ -301,3 +307,82 @@ class TransactionRepositoryContract:
         assert [t.id for t in await repository.list_between(dono, NOVEMBRO)] == [
             mantida.id
         ]
+
+    async def test_guarda_e_devolve_a_recorrencia_de_origem(
+        self,
+        repository: TransactionRepository,
+        dono: OwnerId,
+        conta: AccountId,
+        recorrencia: RecurrenceId,
+    ) -> None:
+        gerada = lancamento(dono, conta, date(2026, 11, 7))
+        gerada.recurrence = recorrencia
+        manual = lancamento(dono, conta, date(2026, 11, 8))
+        await repository.add(gerada)
+        await repository.add(manual)
+
+        lidas = await repository.list_between(dono, NOVEMBRO)
+
+        assert {t.id: t.recurrence for t in lidas} == {
+            gerada.id: recorrencia,
+            manual.id: None,
+        }
+
+    async def test_a_mesma_recorrencia_nao_lanca_duas_vezes_no_mesmo_dia(
+        self,
+        repository: TransactionRepository,
+        dono: OwnerId,
+        conta: AccountId,
+        recorrencia: RecurrenceId,
+    ) -> None:
+        primeira = lancamento(dono, conta, date(2026, 11, 7))
+        primeira.recurrence = recorrencia
+        repetida = lancamento(dono, conta, date(2026, 11, 7))
+        repetida.recurrence = recorrencia
+        await repository.add(primeira)
+
+        with pytest.raises(DuplicateOccurrenceError):
+            await repository.add(repetida)
+
+    async def test_dias_diferentes_e_lancamentos_manuais_nao_conflitam(
+        self,
+        repository: TransactionRepository,
+        dono: OwnerId,
+        conta: AccountId,
+        recorrencia: RecurrenceId,
+    ) -> None:
+        dia7 = lancamento(dono, conta, date(2026, 11, 7))
+        dia7.recurrence = recorrencia
+        dia8 = lancamento(dono, conta, date(2026, 11, 8))
+        dia8.recurrence = recorrencia
+        for t in (dia7, dia8):
+            await repository.add(t)
+        await repository.add(lancamento(dono, conta, date(2026, 11, 7)))
+        await repository.add(lancamento(dono, conta, date(2026, 11, 7)))
+
+        assert len(await repository.list_between(dono, NOVEMBRO)) == 4
+
+    async def test_corrigir_mantem_a_recorrencia_de_origem(
+        self,
+        repository: TransactionRepository,
+        dono: OwnerId,
+        conta: AccountId,
+        recorrencia: RecurrenceId,
+    ) -> None:
+        gerada = lancamento(dono, conta, date(2026, 11, 7))
+        gerada.recurrence = recorrencia
+        await repository.add(gerada)
+        gerada.revise(
+            account=conta,
+            kind=gerada.kind,
+            amount=Money(99900),
+            description=gerada.description,
+            category=gerada.category,
+            occurred_on=date(2026, 11, 9),
+        )
+
+        await repository.update(gerada)
+
+        [lida] = await repository.list_between(dono, NOVEMBRO)
+        assert lida.amount == Money(99900)
+        assert lida.recurrence == recorrencia

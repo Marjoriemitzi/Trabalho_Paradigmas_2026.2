@@ -1,11 +1,13 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.shared.presentation.api.errors import ApiError
-from app.users.application.ports.access_token_check import AccessTokenCheck
 from app.users.application.ports.token_verifier import AuthenticatedUser, TokenVerifier
+
+if TYPE_CHECKING:
+    from app.users.application.ports.access_token_check import AccessTokenCheck
 
 _bearer = HTTPBearer(
     auto_error=False, description="O access_token devolvido por /api/v1/auth/login"

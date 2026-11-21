@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from typing import override
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -9,6 +10,7 @@ SEM_NO_STORE = frozenset({"/api/v1/categories"})
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
+    @override
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:

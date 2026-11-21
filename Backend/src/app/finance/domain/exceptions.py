@@ -17,3 +17,8 @@ class AccountNameTakenError(FinanceDomainError):
 class AccountInUseError(FinanceDomainError):
     def __init__(self) -> None:
         super().__init__("A conta tem lançamentos ou transferências ligados a ela")
+
+
+class DuplicateOccurrenceError(FinanceDomainError):
+    def __init__(self) -> None:
+        super().__init__("A recorrência já lançou uma transação nesse dia")

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.transfers import (
     ListTransfersInput,
@@ -27,6 +27,7 @@ class ListTransfersInteractor(ListTransfersInputPort):
     uow: UnitOfWork
     presenter: ListTransfersOutputPort
 
+    @override
     async def execute(self, data: ListTransfersInput) -> None:
         try:
             period = Period(data.start, data.end)

@@ -38,7 +38,7 @@ PEDIDO = {
 }
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Api:
     client: AsyncClient
     uow: FakeUnitOfWork

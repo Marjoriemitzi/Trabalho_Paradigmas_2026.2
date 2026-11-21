@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.users.application.dtos.refresh_session import LogoutInput
 from app.users.application.ports.clock import Clock
@@ -21,6 +21,7 @@ class LogoutInteractor(LogoutInputPort):
     clock: Clock
     presenter: LogoutOutputPort
 
+    @override
     async def execute(self, data: LogoutInput) -> None:
         agora = self.clock.now()
         async with self.uow:

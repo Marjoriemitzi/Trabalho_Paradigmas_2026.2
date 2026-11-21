@@ -1,7 +1,11 @@
+from typing import TYPE_CHECKING
+
 import pytest
 
-from app.users.application.ports.unit_of_work import UnitOfWork
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
+
+if TYPE_CHECKING:
+    from app.users.application.ports.unit_of_work import UnitOfWork
 
 
 async def test_commit_confirma_o_trabalho() -> None:

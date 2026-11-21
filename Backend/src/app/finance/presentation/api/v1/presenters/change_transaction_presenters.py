@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import Response, status
 from fastapi.responses import JSONResponse
 
@@ -27,10 +29,12 @@ class UpdateTransactionHttpPresenter(UpdateTransactionOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_updated(self, transaction: RecordedTransaction) -> None:
         corpo = RecordedTransactionResponse.from_output(transaction).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_200_OK)
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -38,6 +42,7 @@ class UpdateTransactionHttpPresenter(UpdateTransactionOutputPort):
             fields=[{"field": field, "problem": problem}],
         )
 
+    @override
     def present_not_found(self) -> None:
         self._response = _not_found()
 
@@ -51,8 +56,10 @@ class DeleteTransactionHttpPresenter(DeleteTransactionOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_deleted(self) -> None:
         self._response = Response(status_code=status.HTTP_204_NO_CONTENT)
 
+    @override
     def present_not_found(self) -> None:
         self._response = _not_found()

@@ -42,7 +42,8 @@ def test_cada_lancamento_tem_identidade_propria() -> None:
 
     assert primeira.id != segunda.id
     assert primeira != segunda
-    assert primeira == primeira
+    mesma = primeira
+    assert primeira == mesma
     assert len({primeira, segunda, primeira}) == 2
 
 

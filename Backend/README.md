@@ -2,6 +2,9 @@
 
 Backend em FastAPI + Prolog, Clean Architecture + DDD.
 
+**Vai criar uma feature?** Leia o [CONTRIBUTING.md](CONTRIBUTING.md): a ordem de trabalho, onde
+registrar cada peça e as regras que um PR precisa respeitar.
+
 Todo o backend roda dentro do Docker: a API, o banco, os testes, o lint e as migrations.
 Nenhuma dependência Python do projeto é instalada fora dos containers.
 
@@ -70,6 +73,58 @@ chave). O IP é sempre `request.client.host`: atrás de proxy, o uvicorn só o t
 `X-Forwarded-For` se o proxy estiver em `FORWARDED_ALLOW_IPS` (vazio no compose = nenhum). A
 aplicação nunca lê o cabeçalho direto.
 
+## Códigos da API
+
+Todos os códigos de erro e de aviso estão em [docs/api-codes.md](docs/api-codes.md). Um código
+novo entra no catálogo no mesmo PR; o teste `tests/test_api_codes.py` falha se faltar.
+
+## Contrato OpenAPI
+
+O contrato fica versionado em `openapi/openapi.json`, para o frontend usar mesmo com `ENABLE_DOCS=false`.
+Mudou rota, schema ou descrição? Regenere o arquivo no mesmo PR:
+
+```bash
+docker compose run --rm --no-deps tools task openapi
+```
+
+O teste `tests/test_openapi.py` falha se o arquivo estiver desatualizado.
+
+## Dados de demonstração
+
+Cria um usuário com 3 contas, 3 meses de lançamentos, transferências e recorrências, passando
+pelos casos de uso (categorizador, saldos e regras de verdade):
+
+```bash
+docker compose exec app python -m app.seed_demo               # demo@acme.com
+docker compose exec app python -m app.seed_demo --email ana@acme.com
+docker compose exec app python -m app.seed_demo --reset       # apaga e recria
+```
+
+A senha vem de `DEMO_PASSWORD`; sem ela, o comando gera uma senha forte e a imprime uma única vez.
+O comando **só roda com `APP_ENV=development`** (o padrão da aplicação é `production`, então ele
+recusa quando ninguém configurou nada). Os dados são relativos a "hoje" e determinísticos.
+
+## Recorrências: lançamento automático
+
+O cadastro (`/api/v1/recurrences`) só guarda a regra. Quem lança as transações é o comando
+
+```bash
+docker compose exec app python -m app.run_due_recurrences             # uma vez
+docker compose exec app python -m app.run_due_recurrences --today 2026-12-20   # recuperação manual
+```
+
+Ele lança, pelo mesmo fluxo do lançamento feito à mão (categorizador e `checks`), todas as
+ocorrências pendentes até hoje, e é **idempotente**: rodar duas vezes, ou ficar dias sem rodar,
+não duplica nem perde nada (`last_run_on` mais o índice único `(recurrence_id, occurred_on)`).
+Ocorrências com mais de 62 dias são puladas e registradas no log. Sai com código 1 se alguma
+recorrência falhou; a falha de uma não impede as outras.
+
+**Quem chama todo dia:** o serviço `scheduler` do `docker-compose.yml` (mesma imagem do `app`,
+somente leitura, sem capabilities e sem portas) roda `--every 3600`, ou seja, de hora em hora.
+Como o comando é idempotente, as execuções extras não fazem nada, e o serviço continua correto
+se reiniciar. Para ver: `docker compose logs -f scheduler`. Em desenvolvimento o fuso vem de
+`TIMEZONE` (padrão `America/Sao_Paulo`).
+
 ## Dia a dia
 
 ```bash
@@ -95,6 +150,9 @@ docker compose exec app task audit         # vulnerabilidades nas dependências
 docker compose run --rm --no-deps tools ruff format .     # formatar o código
 ```
 
+O CI do GitHub Actions (veja o [README da raiz](../README.md#ci)) roda os mesmos comandos desta
+seção, mais `alembic check` e o ciclo `downgrade base` / `upgrade head`.
+
 ## Migrations
 
 ```bash
@@ -107,8 +165,9 @@ docker compose exec app alembic history
 
 `migrations/env.py` lê a `DATABASE_URL` do ambiente. Nunca coloque senha no `alembic.ini`.
 
-O `--autogenerate` só funciona depois que `target_metadata` em `migrations/env.py` apontar para o
-`MetaData` dos modelos do SQLAlchemy. Até lá, use `alembic revision -m "descrição"` sem ele.
+O `--autogenerate` compara o banco com o `Base.metadata` (`target_metadata` em `migrations/env.py`).
+Ele só enxerga um model que tenha sido importado ali: ao criar um model novo, acrescente o import em
+`migrations/env.py`. Revise sempre o arquivo gerado (veja o [CONTRIBUTING](CONTRIBUTING.md)).
 
 ## Dependências
 

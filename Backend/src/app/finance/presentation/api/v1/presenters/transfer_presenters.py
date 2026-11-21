@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import Response, status
 from fastapi.responses import JSONResponse
 
@@ -22,10 +24,12 @@ class CreateTransferHttpPresenter(CreateTransferOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_created(self, transfer: TransferOutput) -> None:
         corpo = TransferResponse.from_output(transfer).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_201_CREATED)
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -43,9 +47,11 @@ class DeleteTransferHttpPresenter(DeleteTransferOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_deleted(self) -> None:
         self._response = Response(status_code=status.HTTP_204_NO_CONTENT)
 
+    @override
     def present_not_found(self) -> None:
         self._response = error_response(status.HTTP_404_NOT_FOUND, "transfer_not_found")
 
@@ -59,6 +65,7 @@ class UpdateTransferHttpPresenter(UpdateTransferOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_updated(self, transfer: TransferOutput) -> None:
         corpo = TransferResponse.from_output(transfer).model_dump()
         self._response = JSONResponse(
@@ -67,6 +74,7 @@ class UpdateTransferHttpPresenter(UpdateTransferOutputPort):
             headers={"Cache-Control": "no-store"},
         )
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -74,6 +82,7 @@ class UpdateTransferHttpPresenter(UpdateTransferOutputPort):
             fields=[{"field": field, "problem": problem}],
         )
 
+    @override
     def present_not_found(self) -> None:
         self._response = error_response(status.HTTP_404_NOT_FOUND, "transfer_not_found")
 
@@ -87,6 +96,7 @@ class ListTransfersHttpPresenter(ListTransfersOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_listed(self, listing: TransferListOutput) -> None:
         corpo = TransferListResponse.from_output(listing).model_dump(by_alias=True)
         self._response = JSONResponse(
@@ -95,6 +105,7 @@ class ListTransfersHttpPresenter(ListTransfersOutputPort):
             headers={"Cache-Control": "no-store"},
         )
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,

@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -16,10 +18,12 @@ class RenameAccountHttpPresenter(RenameAccountOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_renamed(self, account: AccountOutput) -> None:
         corpo = AccountResponse.from_output(account).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_200_OK)
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -27,8 +31,10 @@ class RenameAccountHttpPresenter(RenameAccountOutputPort):
             fields=[{"field": field, "problem": problem}],
         )
 
-    def present_name_taken(self, name: str) -> None:
+    @override
+    def present_name_taken(self, _name: str) -> None:
         self._response = error_response(status.HTTP_409_CONFLICT, "account_name_taken")
 
+    @override
     def present_not_found(self) -> None:
         self._response = error_response(status.HTTP_404_NOT_FOUND, "account_not_found")
