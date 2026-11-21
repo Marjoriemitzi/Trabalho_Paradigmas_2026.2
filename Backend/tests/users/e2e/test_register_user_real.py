@@ -50,6 +50,21 @@ async def test_senha_fraca_e_recusada_pelas_regras_em_prolog(
     assert await buscar(migrated_database, fresh_email) is None
 
 
+async def test_senha_com_byte_nul_responde_422_sem_persistir(
+    real_client: AsyncClient, fresh_email: str, migrated_database: str
+) -> None:
+    resposta = await real_client.post(
+        URL, json={"email": fresh_email, "password": "S3nha!Forte123\x00"}
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "weak_password",
+        "reasons": ["invalid_character"],
+    }
+    assert await buscar(migrated_database, fresh_email) is None
+
+
 async def test_segundo_cadastro_do_mesmo_email_responde_409(
     real_client: AsyncClient, fresh_email: str
 ) -> None:

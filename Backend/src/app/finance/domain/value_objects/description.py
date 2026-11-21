@@ -13,6 +13,8 @@ class Description:
         limpo = self.text.strip()
         if limpo == "":
             raise InvalidValueError("blank")
+        if "\x00" in limpo:
+            raise InvalidValueError("invalid_format")
         if len(limpo) > MAX_LENGTH:
             raise InvalidValueError("too_long")
         object.__setattr__(self, "text", limpo)

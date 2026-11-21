@@ -20,6 +20,11 @@ def test_raw_password_recusa_texto_vazio() -> None:
         RawPassword("")
 
 
+def test_raw_password_recusa_byte_nul() -> None:
+    with pytest.raises(ValueError, match="NUL"):
+        RawPassword("S3nha!Forte\x00123")
+
+
 def test_password_hash_guarda_o_hash() -> None:
     assert PasswordHash(HASH).value == HASH
 
