@@ -10,6 +10,7 @@ from app.finance.application.dtos.record_transaction import (
     RecordTransactionInput,
 )
 from app.finance.application.dtos.transaction_warning import TransactionWarning
+from app.shared.presentation.api.schema_types import IsoDateStr, UuidStr
 
 
 class RecordTransactionRequest(BaseModel):
@@ -60,14 +61,14 @@ class TransactionWarningResponse(BaseModel):
 
 
 class RecordedTransactionResponse(BaseModel):
-    id: str
-    account_id: str
+    id: UuidStr
+    account_id: UuidStr
     kind: str
     amount_cents: int
     description: str
     category: str
-    occurred_on: str
-    recurrence_id: str | None
+    occurred_on: IsoDateStr
+    recurrence_id: UuidStr | None
     warnings: list[TransactionWarningResponse]
 
     @classmethod

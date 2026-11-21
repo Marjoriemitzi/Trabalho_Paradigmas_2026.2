@@ -10,6 +10,7 @@ from app.finance.application.dtos.transfers import (
     TransferOutput,
     UpdateTransferInput,
 )
+from app.shared.presentation.api.schema_types import IsoDateStr, UuidStr
 
 
 class CreateTransferRequest(BaseModel):
@@ -33,12 +34,12 @@ class CreateTransferRequest(BaseModel):
 
 
 class TransferResponse(BaseModel):
-    id: str
-    from_account_id: str
-    to_account_id: str
+    id: UuidStr
+    from_account_id: UuidStr
+    to_account_id: UuidStr
     amount_cents: int
     description: str
-    occurred_on: str
+    occurred_on: IsoDateStr
 
     @classmethod
     def from_output(cls, transfer: TransferOutput) -> Self:
@@ -68,8 +69,8 @@ class UpdateTransferRequest(CreateTransferRequest):
 
 
 class TransferListResponse(BaseModel):
-    start: str = Field(serialization_alias="from")
-    end: str = Field(serialization_alias="to")
+    start: IsoDateStr = Field(serialization_alias="from")
+    end: IsoDateStr = Field(serialization_alias="to")
     transfers: list[TransferResponse]
 
     @classmethod

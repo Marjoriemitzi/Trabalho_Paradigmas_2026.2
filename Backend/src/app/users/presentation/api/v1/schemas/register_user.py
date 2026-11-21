@@ -2,6 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, SecretStr
 
+from app.shared.presentation.api.schema_types import UuidStr
 from app.users.application.dtos.register_user import RegisteredUser, RegisterUserInput
 
 
@@ -20,7 +21,7 @@ class RegisterUserRequest(BaseModel):
 
 
 class RegisteredUserResponse(BaseModel):
-    id: str
+    id: UuidStr
     email: str
     role: str
 
