@@ -10,6 +10,8 @@ class PrologPasswordPolicy:
         self._prolog.consult(rules_dir / "users" / "password_policy.pl")
 
     def check(self, password: str) -> None:
+        if "\x00" in password:
+            raise WeakPasswordError(["invalid_character"])
         if self._prolog.holds("valid_password", password):
             return
         raise WeakPasswordError(self._prolog.values("password_error", password))

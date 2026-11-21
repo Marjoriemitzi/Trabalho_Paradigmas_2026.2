@@ -82,6 +82,18 @@ async def test_senha_atual_vazia_conta_como_errada() -> None:
     assert presenter.invalid_current_password is True
 
 
+async def test_senha_atual_com_byte_nul_conta_como_errada() -> None:
+    interactor, _, presenter, _, ana = await montar()
+
+    await interactor.execute(
+        ChangePasswordInput(
+            user_id=ana.id, current_password=f"{ATUAL}\x00", new_password=NOVA
+        )
+    )
+
+    assert presenter.invalid_current_password is True
+
+
 async def test_senha_nova_fraca_e_recusada_com_os_motivos() -> None:
     interactor, uow, presenter, _, ana = await montar()
 
