@@ -9,6 +9,7 @@ from app.finance.application.dtos.create_account import (
 )
 from app.finance.application.dtos.list_accounts import AccountSummary
 from app.finance.application.dtos.rename_account import RenameAccountInput
+from app.shared.presentation.api.schema_types import UuidStr
 
 
 class CreateAccountRequest(BaseModel):
@@ -22,7 +23,7 @@ class CreateAccountRequest(BaseModel):
 
 
 class AccountResponse(BaseModel):
-    id: str
+    id: UuidStr
     name: str
     kind: str
 
@@ -32,7 +33,7 @@ class AccountResponse(BaseModel):
 
 
 class AccountSummaryResponse(BaseModel):
-    id: str
+    id: UuidStr
     name: str
     kind: str
     balance_cents: int

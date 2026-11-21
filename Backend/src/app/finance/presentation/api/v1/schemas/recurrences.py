@@ -9,6 +9,7 @@ from app.finance.application.dtos.recurrences import (
     RecurrenceOutput,
     UpdateRecurrenceInput,
 )
+from app.shared.presentation.api.schema_types import IsoDateStr, UuidStr
 
 
 class RecurrenceRequest(BaseModel):
@@ -57,18 +58,18 @@ class RecurrenceRequest(BaseModel):
 
 
 class RecurrenceResponse(BaseModel):
-    id: str
-    account_id: str
+    id: UuidStr
+    account_id: UuidStr
     kind: str
     amount_cents: int
     description: str
     category: str | None
     frequency: str
     day: int
-    starts_on: str
-    ends_on: str | None
-    next_occurrence_on: str | None
-    last_run_on: str | None
+    starts_on: IsoDateStr
+    ends_on: IsoDateStr | None
+    next_occurrence_on: IsoDateStr | None
+    last_run_on: IsoDateStr | None
 
     @classmethod
     def from_output(cls, recurrence: RecurrenceOutput) -> Self:
