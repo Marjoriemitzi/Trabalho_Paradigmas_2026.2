@@ -29,18 +29,18 @@ Regras para quem acrescenta um código:
 | `too_many_attempts` | 429 | Falhas de login ou cadastros demais no período. | cabeçalho `Retry-After` (segundos) | `POST /api/v1/auth/login`, `POST /api/v1/users` |
 | `email_taken` | 409 | E-mail já cadastrado. | — | `POST /api/v1/users` |
 | `invalid_email` | 422 | E-mail mal formado. | — | `POST /api/v1/users` |
-| `weak_password` | 422 | Senha nova não passa na política (`rules/users/password_policy.pl`). | `reasons: [too_short, no_upper, no_lower, no_digit, no_symbol]` (aqui é `reasons`, não `fields`) | `POST /api/v1/users`, `POST /api/v1/users/me/password` |
+| `weak_password` | 422 | Senha nova não passa na política (`rules/users/password_policy.pl`) ou contém byte NUL. | `reasons: [too_short, no_upper, no_lower, no_digit, no_symbol, invalid_character]` (aqui é `reasons`, não `fields`) | `POST /api/v1/users`, `POST /api/v1/users/me/password` |
 | `invalid_current_password` | 422 | Senha atual errada ao trocar a senha ou apagar a conta. | — | `POST /api/v1/users/me/password`, `DELETE /api/v1/users/me` |
 | `invalid_account` | 422 | Dado da conta recusado. | `fields`: `name` (`blank`, `too_long`), `kind` (`unknown`) | `POST /api/v1/accounts`, `PATCH /api/v1/accounts/{id}` |
 | `account_name_taken` | 409 | Já existe uma conta da pessoa com esse nome (sem diferenciar maiúsculas). | — | `POST /api/v1/accounts`, `PATCH /api/v1/accounts/{id}` |
 | `account_in_use` | 409 | A conta tem transações ou transferências e não pode ser apagada. | — | `DELETE /api/v1/accounts/{id}` |
 | `account_not_found` | 404 | A conta não existe entre as da pessoa (igual para "não existe" e "é de outra pessoa"). | — | extrato com `account_id`, `PATCH` e `DELETE` de conta |
-| `invalid_transaction` | 422 | Dado do lançamento recusado. | `fields`: `kind` (`unknown`), `amount_cents` (`not_positive`), `description` (`blank`, `too_long`), `category` (`invalid_format`, `not_found`), `account_id` (`not_found`) | `POST` e `PUT /api/v1/transactions` |
+| `invalid_transaction` | 422 | Dado do lançamento recusado. | `fields`: `kind` (`unknown`), `amount_cents` (`not_positive`), `description` (`blank`, `too_long`, `invalid_format`), `category` (`invalid_format`, `not_found`), `account_id` (`not_found`) | `POST` e `PUT /api/v1/transactions` |
 | `transaction_not_found` | 404 | O lançamento não existe entre os da pessoa. | — | `PUT` e `DELETE /api/v1/transactions/{id}` |
 | `invalid_period` | 422 | Período recusado. | `fields`: `to` (`end_before_start`, `too_long`) | `GET /api/v1/transactions`, `GET /api/v1/transfers` |
-| `invalid_transfer` | 422 | Dado da transferência recusado. | `fields`: `amount_cents` (`not_positive`), `description` (`blank`, `too_long`), `from_account_id` e `to_account_id` (`not_found`), `to_account_id` (`same_account`) | `POST` e `PUT /api/v1/transfers` |
+| `invalid_transfer` | 422 | Dado da transferência recusado. | `fields`: `amount_cents` (`not_positive`), `description` (`blank`, `too_long`, `invalid_format`), `from_account_id` e `to_account_id` (`not_found`), `to_account_id` (`same_account`) | `POST` e `PUT /api/v1/transfers` |
 | `transfer_not_found` | 404 | A transferência não existe entre as da pessoa. | — | `PUT` e `DELETE /api/v1/transfers/{id}` |
-| `invalid_recurrence` | 422 | Dado da recorrência recusado. | `fields`: `account_id` (`not_found`), `kind` (`unknown`), `amount_cents` (`not_positive`), `description` (`blank`, `too_long`), `category` (`invalid_format`, `not_found`), `frequency` (`unknown`), `day` (`out_of_range`), `ends_on` (`end_before_start`) | `POST` e `PUT /api/v1/recurrences` |
+| `invalid_recurrence` | 422 | Dado da recorrência recusado. | `fields`: `account_id` (`not_found`), `kind` (`unknown`), `amount_cents` (`not_positive`), `description` (`blank`, `too_long`, `invalid_format`), `category` (`invalid_format`, `not_found`), `frequency` (`unknown`), `day` (`out_of_range`), `ends_on` (`end_before_start`) | `POST` e `PUT /api/v1/recurrences` |
 | `recurrence_not_found` | 404 | A recorrência não existe entre as da pessoa. | — | `PUT` e `DELETE /api/v1/recurrences/{id}` |
 
 ## Problemas de campo
@@ -53,7 +53,7 @@ Valores de `fields[].problem` que vêm do domínio.
 | `too_long` | Passou do tamanho máximo (nome da conta e descrições) ou do período máximo (366 dias). |
 | `not_positive` | O valor em centavos precisa ser maior que zero. |
 | `unknown` | Valor fora da lista aceita (tipo de conta ou de lançamento). |
-| `invalid_format` | A categoria não tem o formato aceito. |
+| `invalid_format` | O texto (categoria ou descrição) não tem o formato aceito. |
 | `not_found` | A referência (conta ou categoria) não existe para a pessoa. |
 | `same_account` | A transferência tem a mesma conta na origem e no destino. |
 | `end_before_start` | A data final é anterior à inicial. |
