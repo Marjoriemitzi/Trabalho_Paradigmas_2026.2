@@ -49,7 +49,7 @@ class AuthenticateUserInteractor(AuthenticateUserInputPort):
         self.presenter.present_authenticated(session)
 
     async def _authenticate(self, data: AuthenticateUserInput) -> Session | None:
-        if data.password == "":
+        if data.password == "" or "\x00" in data.password:
             return None
         try:
             email = Email(data.email)

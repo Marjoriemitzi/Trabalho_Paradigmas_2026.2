@@ -8,6 +8,8 @@ class RawPassword:
     def __post_init__(self) -> None:
         if self._secret == "":
             raise ValueError("A senha não pode ser vazia.")
+        if "\x00" in self._secret:
+            raise ValueError("A senha não pode conter byte NUL.")
 
     def reveal(self) -> str:
         return self._secret

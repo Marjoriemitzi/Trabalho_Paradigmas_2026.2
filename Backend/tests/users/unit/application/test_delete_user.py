@@ -53,6 +53,14 @@ async def test_senha_vazia_conta_como_errada() -> None:
     assert presenter.invalid_current_password is True
 
 
+async def test_senha_com_byte_nul_conta_como_errada() -> None:
+    interactor, _, presenter, ana = await montar()
+
+    await interactor.execute(DeleteUserInput(user_id=ana.id, password=f"{SENHA}\x00"))
+
+    assert presenter.invalid_current_password is True
+
+
 async def test_usuario_que_nao_existe_vai_pelo_caminho_de_nao_encontrado() -> None:
     interactor, uow, presenter, _ = await montar()
 

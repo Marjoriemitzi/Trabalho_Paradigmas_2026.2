@@ -39,8 +39,12 @@ class ChangePasswordInteractor(ChangePasswordInputPort):
                 self.presenter.present_user_not_found()
                 return
 
-            if not data.current_password or not await self.hasher.verify(
-                RawPassword(data.current_password), user.password_hash
+            if (
+                not data.current_password
+                or "\x00" in data.current_password
+                or not await self.hasher.verify(
+                    RawPassword(data.current_password), user.password_hash
+                )
             ):
                 self.presenter.present_invalid_current_password()
                 return

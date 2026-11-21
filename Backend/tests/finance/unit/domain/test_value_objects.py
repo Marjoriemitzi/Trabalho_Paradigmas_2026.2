@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -16,11 +17,20 @@ def test_dinheiro_guarda_centavos_inteiros() -> None:
 
 
 def test_dinheiro_nao_pode_ser_zero_nem_negativo() -> None:
-    for invalido in (0, -1):
+    for invalido in (0, -1, -(2**62)):
         with pytest.raises(InvalidValueError) as erro:
             Money(invalido)
         assert erro.value.problem == "not_positive"
         assert str(erro.value) == "not_positive"
+
+
+@pytest.mark.parametrize(
+    "invalido",
+    [True, False, 0.1, 1.0, Decimal("1.00"), float("nan"), float("inf"), "100", None],
+)
+def test_dinheiro_recusa_booleano_e_nao_inteiros(invalido: object) -> None:
+    with pytest.raises(TypeError, match="inteiro"):
+        Money(invalido)  # type: ignore[arg-type]
 
 
 def test_tipo_da_transacao_vem_do_texto() -> None:
@@ -42,6 +52,12 @@ def test_descricao_em_branco_e_recusada() -> None:
     with pytest.raises(InvalidValueError) as erro:
         Description("   ")
     assert erro.value.problem == "blank"
+
+
+def test_descricao_com_byte_nul_e_recusada() -> None:
+    with pytest.raises(InvalidValueError) as erro:
+        Description("Padaria\x00extra")
+    assert erro.value.problem == "invalid_format"
 
 
 def test_descricao_tem_no_maximo_200_caracteres() -> None:
