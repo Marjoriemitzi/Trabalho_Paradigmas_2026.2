@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Protocol
 
 from app.finance.domain.entities.recurrence import Recurrence
@@ -17,3 +18,7 @@ class RecurrenceRepository(Protocol):
     async def remove(self, recurrence: Recurrence) -> None: ...
 
     async def list_by_owner(self, owner: OwnerId) -> list[Recurrence]: ...
+
+    async def list_pending(self, today: date) -> list[Recurrence]:
+        """As de todas as pessoas que ainda têm dias a lançar até `today`."""
+        ...

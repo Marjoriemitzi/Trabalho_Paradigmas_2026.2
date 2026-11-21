@@ -315,6 +315,17 @@
             "title": "Occurred On",
             "type": "string"
           },
+          "recurrence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Id"
+          },
           "warnings": {
             "items": {
               "$ref": "#/components/schemas/TransactionWarningResponse"
@@ -331,6 +342,7 @@
           "description",
           "category",
           "occurred_on",
+          "recurrence_id",
           "warnings"
         ],
         "title": "RecordedTransactionResponse",
@@ -473,6 +485,17 @@
             "title": "Kind",
             "type": "string"
           },
+          "last_run_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run On"
+          },
           "next_occurrence_on": {
             "anyOf": [
               {
@@ -500,7 +523,8 @@
           "day",
           "starts_on",
           "ends_on",
-          "next_occurrence_on"
+          "next_occurrence_on",
+          "last_run_on"
         ],
         "title": "RecurrenceResponse",
         "type": "object"
@@ -643,6 +667,17 @@
           "occurred_on": {
             "title": "Occurred On",
             "type": "string"
+          },
+          "recurrence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Id"
           }
         },
         "required": [
@@ -652,7 +687,8 @@
           "amount_cents",
           "description",
           "category",
-          "occurred_on"
+          "occurred_on",
+          "recurrence_id"
         ],
         "title": "StatementEntryResponse",
         "type": "object"

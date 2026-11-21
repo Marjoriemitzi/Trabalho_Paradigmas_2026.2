@@ -7,6 +7,7 @@ from app.finance.domain.repositories.transaction_repository import (
 )
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.owner_id import OwnerId
+from app.finance.domain.value_objects.recurrence_id import RecurrenceId
 from tests.finance.contracts.transaction_repository_contract import (
     TransactionRepositoryContract,
 )
@@ -37,3 +38,7 @@ class TestFakeTransactionRepository(TransactionRepositoryContract):
     @pytest.fixture
     def conta_do_outro(self) -> AccountId:
         return AccountId.new()
+
+    @pytest.fixture
+    def recorrencia(self) -> RecurrenceId:
+        return RecurrenceId.new()

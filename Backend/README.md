@@ -101,6 +101,27 @@ A senha vem de `DEMO_PASSWORD`; sem ela, o comando gera uma senha forte e a impr
 O comando **só roda com `APP_ENV=development`** (o padrão da aplicação é `production`, então ele
 recusa quando ninguém configurou nada). Os dados são relativos a "hoje" e determinísticos.
 
+## Recorrências: lançamento automático
+
+O cadastro (`/api/v1/recurrences`) só guarda a regra. Quem lança as transações é o comando
+
+```bash
+docker compose exec app python -m app.run_due_recurrences             # uma vez
+docker compose exec app python -m app.run_due_recurrences --today 2026-12-20   # recuperação manual
+```
+
+Ele lança, pelo mesmo fluxo do lançamento feito à mão (categorizador e `checks`), todas as
+ocorrências pendentes até hoje, e é **idempotente**: rodar duas vezes, ou ficar dias sem rodar,
+não duplica nem perde nada (`last_run_on` mais o índice único `(recurrence_id, occurred_on)`).
+Ocorrências com mais de 62 dias são puladas e registradas no log. Sai com código 1 se alguma
+recorrência falhou; a falha de uma não impede as outras.
+
+**Quem chama todo dia:** o serviço `scheduler` do `docker-compose.yml` (mesma imagem do `app`,
+somente leitura, sem capabilities e sem portas) roda `--every 3600`, ou seja, de hora em hora.
+Como o comando é idempotente, as execuções extras não fazem nada, e o serviço continua correto
+se reiniciar. Para ver: `docker compose logs -f scheduler`. Em desenvolvimento o fuso vem de
+`TIMEZONE` (padrão `America/Sao_Paulo`).
+
 ## Dia a dia
 
 ```bash

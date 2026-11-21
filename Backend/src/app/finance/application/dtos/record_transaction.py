@@ -27,6 +27,7 @@ class RecordedTransaction:
     description: str
     category: str
     occurred_on: str
+    recurrence_id: str | None = None
     warnings: tuple[TransactionWarning, ...] = ()
 
     @classmethod
@@ -41,5 +42,10 @@ class RecordedTransaction:
             description=transaction.description.text,
             category=transaction.category.name,
             occurred_on=transaction.occurred_on.isoformat(),
+            recurrence_id=(
+                None
+                if transaction.recurrence is None
+                else str(transaction.recurrence.value)
+            ),
             warnings=warnings,
         )

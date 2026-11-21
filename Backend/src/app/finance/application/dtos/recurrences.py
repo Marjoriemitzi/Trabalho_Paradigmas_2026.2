@@ -59,6 +59,7 @@ class RecurrenceOutput:
     starts_on: str
     ends_on: str | None
     next_occurrence_on: str | None
+    last_run_on: str | None
 
     @classmethod
     def from_recurrence(
@@ -79,5 +80,10 @@ class RecurrenceOutput:
             else recurrence.ends_on.isoformat(),
             next_occurrence_on=(
                 None if next_occurrence_on is None else next_occurrence_on.isoformat()
+            ),
+            last_run_on=(
+                None
+                if recurrence.last_run_on is None
+                else recurrence.last_run_on.isoformat()
             ),
         )

@@ -71,6 +71,12 @@ from app.finance.application.use_cases.rename_account import (
     RenameAccountInteractor,
     RenameAccountOutputPort,
 )
+from app.finance.application.use_cases.run_due_recurrences import (
+    RunDueRecurrencesFactory,
+    RunDueRecurrencesInputPort,
+    RunDueRecurrencesInteractor,
+    RunDueRecurrencesOutputPort,
+)
 from app.finance.application.use_cases.update_recurrence import (
     UpdateRecurrenceInputPort,
     UpdateRecurrenceInteractor,
@@ -329,6 +335,24 @@ def list_recurrences_factory(
             uow=SqlAlchemyUnitOfWork(session_factory),
             rules=rules,
             clock=clock,
+            presenter=presenter,
+        )
+
+    return build
+
+
+def run_due_recurrences_factory(
+    session_factory: async_sessionmaker[AsyncSession],
+    categorizer: Categorizer,
+    checks: tuple[TransactionCheck, ...],
+    rules: RecurrenceRules,
+) -> RunDueRecurrencesFactory:
+    def build(presenter: RunDueRecurrencesOutputPort) -> RunDueRecurrencesInputPort:
+        return RunDueRecurrencesInteractor(
+            uow_factory=lambda: SqlAlchemyUnitOfWork(session_factory),
+            categorizer=categorizer,
+            checks=checks,
+            rules=rules,
             presenter=presenter,
         )
 

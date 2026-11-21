@@ -35,6 +35,7 @@ def test_lancamento_gravado_vira_201_com_os_dados() -> None:
         "description": "Supermercado",
         "category": "mercado",
         "occurred_on": "2026-11-07",
+        "recurrence_id": None,
         "warnings": [],
     }
 

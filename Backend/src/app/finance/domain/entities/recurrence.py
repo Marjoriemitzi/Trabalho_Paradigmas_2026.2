@@ -24,6 +24,7 @@ class Recurrence:
     category: Category | None
     schedule: Schedule
     window: ActiveRange
+    last_run_on: date | None = None
 
     @property
     def starts_on(self) -> date:
@@ -74,6 +75,9 @@ class Recurrence:
         self.category = category
         self.schedule = schedule
         self.window = window
+
+    def mark_run(self, day: date) -> None:
+        self.last_run_on = day
 
     @override
     def __eq__(self, other: object) -> bool:

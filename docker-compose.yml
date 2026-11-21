@@ -51,6 +51,28 @@ services:
       db:
         condition: service_healthy
 
+  scheduler:
+    <<: *hardening
+    image: finance-manager-dev:local
+    pull_policy: never
+    command: python -m app.run_due_recurrences --every 3600
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    volumes:
+      - ./Backend/src:/app/src:ro
+      - ./Backend/rules:/app/rules:ro
+      - ./Backend/pyproject.toml:/app/pyproject.toml:ro
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+
   tools:
     <<: *hardening
     profiles: ["tools"]

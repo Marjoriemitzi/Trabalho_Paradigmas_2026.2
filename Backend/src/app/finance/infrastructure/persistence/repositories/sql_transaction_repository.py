@@ -1,9 +1,11 @@
 from datetime import date
 
 from sqlalchemy import ColumnElement, delete, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.finance.domain.entities.transaction import Transaction
+from app.finance.domain.exceptions import DuplicateOccurrenceError
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
@@ -33,13 +35,21 @@ def _do_dono(owner: OwnerId, account: AccountId | None) -> list[ColumnElement[bo
     return condicoes
 
 
+OCORRENCIA_UNICA = "uq_transactions_recurrence_id_occurred_on"
+
+
 class SqlTransactionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def add(self, transaction: Transaction) -> None:
         self._session.add(to_model(transaction))
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as error:
+            if f'"{OCORRENCIA_UNICA}"' in str(error.orig):
+                raise DuplicateOccurrenceError from error
+            raise
 
     async def get(
         self, owner: OwnerId, transaction_id: TransactionId

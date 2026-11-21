@@ -16,12 +16,19 @@ from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.money import Money
 from app.finance.domain.value_objects.owner_id import OwnerId
+from app.finance.domain.value_objects.recurrence_id import RecurrenceId
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 from app.finance.infrastructure.persistence.models.transaction_model import (
     TransactionModel,
 )
+from app.finance.infrastructure.persistence.repositories.sql_recurrence_repository import (  # noqa: E501
+    SqlRecurrenceRepository,
+)
 from app.finance.infrastructure.persistence.repositories.sql_transaction_repository import (  # noqa: E501
     SqlTransactionRepository,
+)
+from tests.finance.contracts.recurrence_repository_contract import (
+    recorrencia as nova_recorrencia,
 )
 from tests.finance.contracts.transaction_repository_contract import (
     TransactionRepositoryContract,
@@ -49,6 +56,14 @@ class TestSqlTransactionRepository(TransactionRepositoryContract):
     @pytest.fixture
     async def outra_conta(self, nova_conta: NovaConta, dono: OwnerId) -> AccountId:
         return await nova_conta(dono)
+
+    @pytest.fixture
+    async def recorrencia(
+        self, session: AsyncSession, dono: OwnerId, conta: AccountId
+    ) -> RecurrenceId:
+        regra = nova_recorrencia(dono, conta)
+        await SqlRecurrenceRepository(session).add(regra)
+        return regra.id
 
     @pytest.fixture
     async def conta_do_outro(

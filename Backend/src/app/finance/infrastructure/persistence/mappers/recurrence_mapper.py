@@ -27,6 +27,7 @@ def to_model(recurrence: Recurrence) -> RecurrenceModel:
         day=recurrence.schedule.day,
         starts_on=recurrence.starts_on,
         ends_on=recurrence.ends_on,
+        last_run_on=recurrence.last_run_on,
     )
 
 
@@ -41,4 +42,5 @@ def to_entity(model: RecurrenceModel) -> Recurrence:
         category=None if model.category is None else Category(model.category),
         schedule=Schedule(Frequency(model.frequency), model.day),
         window=ActiveRange(model.starts_on, model.ends_on),
+        last_run_on=model.last_run_on,
     )

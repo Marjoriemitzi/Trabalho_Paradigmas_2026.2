@@ -160,3 +160,69 @@ class RecurrenceRepositoryContract:
 
         assert await repository.get(dono, apagada.id) is None
         assert await repository.get(dono, mantida.id) is not None
+
+    async def test_o_ultimo_dia_lancado_e_gravado(
+        self, repository: RecurrenceRepository, dono: OwnerId, conta: AccountId
+    ) -> None:
+        gravada = recorrencia(dono, conta)
+        await repository.add(gravada)
+        gravada.mark_run(date(2026, 12, 20))
+
+        await repository.update(gravada)
+
+        lida = await repository.get(dono, gravada.id)
+        assert lida is not None
+        assert lida.last_run_on == date(2026, 12, 20)
+
+    async def test_pendentes_traz_as_de_varias_pessoas_e_pula_as_ja_processadas(
+        self,
+        repository: RecurrenceRepository,
+        dono: OwnerId,
+        outro_dono: OwnerId,
+        conta: AccountId,
+        conta_do_outro: AccountId,
+    ) -> None:
+        hoje = date(2026, 12, 20)
+        minha = recorrencia(dono, conta, "Minha", comeca_em=date(2026, 12, 1))
+        da_outra = recorrencia(
+            outro_dono, conta_do_outro, "Da outra", comeca_em=date(2026, 12, 1)
+        )
+        futura = recorrencia(dono, conta, "Futura", comeca_em=date(2027, 1, 1))
+        processada = recorrencia(dono, conta, "Processada", comeca_em=date(2026, 12, 1))
+        processada.mark_run(hoje)
+        terminada = recorrencia(
+            dono,
+            conta,
+            "Terminada",
+            comeca_em=date(2026, 11, 1),
+            termina_em=date(2026, 11, 30),
+        )
+        terminada.mark_run(date(2026, 11, 30))
+        for r in (minha, da_outra, futura, processada, terminada):
+            await repository.add(r)
+            await repository.update(r)
+
+        pendentes = await repository.list_pending(hoje)
+
+        assert {r.description.text for r in pendentes} == {"Minha", "Da outra"}
+
+    async def test_pendente_com_fim_ainda_nao_processado_ate_o_fim_aparece(
+        self,
+        repository: RecurrenceRepository,
+        dono: OwnerId,
+        conta: AccountId,
+    ) -> None:
+        r = recorrencia(
+            dono,
+            conta,
+            "Quase",
+            comeca_em=date(2026, 11, 1),
+            termina_em=date(2026, 11, 30),
+        )
+        r.mark_run(date(2026, 11, 15))
+        await repository.add(r)
+        await repository.update(r)
+
+        pendentes = await repository.list_pending(date(2026, 12, 20))
+
+        assert [p.id for p in pendentes] == [r.id]

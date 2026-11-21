@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import date
 
 from app.finance.domain.entities.recurrence import Recurrence
 from app.finance.domain.value_objects.owner_id import OwnerId
@@ -34,3 +35,14 @@ class FakeRecurrenceRepository:
             (replace(r) for r in self.stored if r.owner == owner),
             key=lambda r: (r.starts_on, r.description.text.lower()),
         )
+
+    async def list_pending(self, today: date) -> list[Recurrence]:
+        return [
+            replace(r)
+            for r in self.stored
+            if r.starts_on <= today
+            and (r.last_run_on is None or r.last_run_on < today)
+            and (
+                r.ends_on is None or r.last_run_on is None or r.last_run_on < r.ends_on
+            )
+        ]

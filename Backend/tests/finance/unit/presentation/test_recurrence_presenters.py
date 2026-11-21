@@ -22,6 +22,7 @@ ALUGUEL = RecurrenceOutput(
     starts_on="2026-12-01",
     ends_on=None,
     next_occurrence_on="2026-12-05",
+    last_run_on=None,
 )
 CORPO = {
     "id": ALUGUEL.id,
@@ -35,6 +36,7 @@ CORPO = {
     "starts_on": "2026-12-01",
     "ends_on": None,
     "next_occurrence_on": "2026-12-05",
+    "last_run_on": None,
 }
 
 

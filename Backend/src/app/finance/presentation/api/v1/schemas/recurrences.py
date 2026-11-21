@@ -68,6 +68,7 @@ class RecurrenceResponse(BaseModel):
     starts_on: str
     ends_on: str | None
     next_occurrence_on: str | None
+    last_run_on: str | None
 
     @classmethod
     def from_output(cls, recurrence: RecurrenceOutput) -> Self:
@@ -83,6 +84,7 @@ class RecurrenceResponse(BaseModel):
             starts_on=recurrence.starts_on,
             ends_on=recurrence.ends_on,
             next_occurrence_on=recurrence.next_occurrence_on,
+            last_run_on=recurrence.last_run_on,
         )
 
 

@@ -60,6 +60,7 @@ class RecurrenceModel(Base):
     day: Mapped[int] = mapped_column(SmallInteger)
     starts_on: Mapped[date] = mapped_column(Date)
     ends_on: Mapped[date | None] = mapped_column(Date)
+    last_run_on: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -17,6 +17,7 @@ class StatementEntryResponse(BaseModel):
     description: str
     category: str
     occurred_on: str
+    recurrence_id: str | None
 
     @classmethod
     def from_entry(cls, entry: StatementEntry) -> Self:
@@ -28,6 +29,7 @@ class StatementEntryResponse(BaseModel):
             description=entry.description,
             category=entry.category,
             occurred_on=entry.occurred_on,
+            recurrence_id=entry.recurrence_id,
         )
 
 

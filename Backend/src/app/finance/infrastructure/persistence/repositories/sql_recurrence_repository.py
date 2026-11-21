@@ -1,4 +1,6 @@
-from sqlalchemy import delete, func, select, update
+from datetime import date
+
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.finance.domain.entities.recurrence import Recurrence
@@ -49,6 +51,7 @@ class SqlRecurrenceRepository:
                 day=novo.day,
                 starts_on=novo.starts_on,
                 ends_on=novo.ends_on,
+                last_run_on=novo.last_run_on,
             )
         )
         await self._session.flush()
@@ -69,5 +72,24 @@ class SqlRecurrenceRepository:
                 RecurrenceModel.starts_on,
                 func.lower(RecurrenceModel.description),
             )
+        )
+        return [to_entity(m) for m in await self._session.scalars(consulta)]
+
+    async def list_pending(self, today: date) -> list[Recurrence]:
+        consulta = (
+            select(RecurrenceModel)
+            .where(
+                RecurrenceModel.starts_on <= today,
+                or_(
+                    RecurrenceModel.last_run_on.is_(None),
+                    RecurrenceModel.last_run_on < today,
+                ),
+                or_(
+                    RecurrenceModel.ends_on.is_(None),
+                    RecurrenceModel.last_run_on.is_(None),
+                    RecurrenceModel.last_run_on < RecurrenceModel.ends_on,
+                ),
+            )
+            .order_by(RecurrenceModel.owner_id, RecurrenceModel.starts_on)
         )
         return [to_entity(m) for m in await self._session.scalars(consulta)]

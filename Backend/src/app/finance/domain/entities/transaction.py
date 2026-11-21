@@ -7,6 +7,7 @@ from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.money import Money
 from app.finance.domain.value_objects.owner_id import OwnerId
+from app.finance.domain.value_objects.recurrence_id import RecurrenceId
 from app.finance.domain.value_objects.transaction_id import TransactionId
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 
@@ -21,6 +22,7 @@ class Transaction:
     description: Description
     category: Category
     occurred_on: date
+    recurrence: RecurrenceId | None = None
 
     @classmethod
     def record(
@@ -32,6 +34,7 @@ class Transaction:
         description: Description,
         category: Category,
         occurred_on: date,
+        recurrence: RecurrenceId | None = None,
     ) -> Self:
         return cls(
             id=TransactionId.new(),
@@ -42,6 +45,7 @@ class Transaction:
             description=description,
             category=category,
             occurred_on=occurred_on,
+            recurrence=recurrence,
         )
 
     def revise(
