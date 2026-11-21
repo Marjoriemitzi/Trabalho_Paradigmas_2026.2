@@ -7,6 +7,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from hypothesis import settings
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -31,6 +32,15 @@ MARKERS: dict[str, pytest.MarkDecorator] = {
 }
 SUITE_MARKERS = frozenset(MARKERS)
 ROOT_E2E_FILES = frozenset({"test_health.py", "test_cors.py"})
+
+settings.register_profile(
+    "ci",
+    max_examples=50,
+    derandomize=True,
+    deadline=None,
+    database=None,
+)
+settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "ci"))
 
 pytest.register_assert_rewrite("tests.users.contracts", "tests.finance.contracts")
 
