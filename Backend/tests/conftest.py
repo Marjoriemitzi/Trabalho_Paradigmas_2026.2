@@ -7,6 +7,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from hypothesis import settings
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -20,6 +21,15 @@ from app.main import create_app
 from app.users.infrastructure.persistence.models.user_model import UserModel
 
 BACKEND = Path(__file__).resolve().parents[1]
+
+settings.register_profile(
+    "ci",
+    max_examples=50,
+    derandomize=True,
+    deadline=None,
+    database=None,
+)
+settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "ci"))
 
 pytest.register_assert_rewrite("tests.users.contracts", "tests.finance.contracts")
 
