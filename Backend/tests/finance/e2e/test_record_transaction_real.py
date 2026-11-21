@@ -42,3 +42,25 @@ async def test_categoria_fora_da_lista_e_recusada(
         "error": "invalid_transaction",
         "fields": [{"field": "category", "problem": "not_found"}],
     }
+
+
+async def test_descricao_com_byte_nul_responde_422_sem_erro_500(
+    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+) -> None:
+    resposta = await real_client.post(
+        "/api/v1/transactions",
+        json={
+            "account_id": carteira,
+            "kind": "expense",
+            "amount_cents": 2390,
+            "description": "Padaria\x00supermercado",
+            "occurred_on": "2026-11-07",
+        },
+        headers=auth_headers,
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transaction",
+        "fields": [{"field": "description", "problem": "invalid_format"}],
+    }
