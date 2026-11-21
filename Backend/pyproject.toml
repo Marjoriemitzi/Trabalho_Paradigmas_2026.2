@@ -30,6 +30,7 @@ mypy = "^1.13"
 ruff = "^0.7"
 taskipy = "^1.14"
 pip-audit = "^2.10"
+mutmut = "^3.8.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -109,4 +110,9 @@ format = "ruff format ."
 typecheck = "mypy src tests"
 audit = "pip-audit --skip-editable --progress-spinner off"
 openapi = "python -m app.export_openapi openapi/openapi.json"
+check = "mypy src tests"
+audit = "pip-audit --skip-editable --progress-spinner off"
+openapi = "python -m app.export_openapi openapi/openapi.json"
+mutate = "sh -c 'rm -rf /tmp/mutmut-work && mkdir -p /tmp/mutmut-work && cp -r /app/src /app/tests /app/pyproject.toml /tmp/mutmut-work/ && cd /tmp/mutmut-work && mutmut run && mutmut results'"
 check = "ruff check . && mypy src tests && pytest && pip-audit --skip-editable --progress-spinner off"
+

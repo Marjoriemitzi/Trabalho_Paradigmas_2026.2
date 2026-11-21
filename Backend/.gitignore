@@ -7,6 +7,8 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+.mutmut-cache
+mutants/
 *.egg-info/
 dist/
 build/
