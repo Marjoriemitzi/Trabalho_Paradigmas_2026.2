@@ -141,14 +141,31 @@ O serviço `app` (a API) é só leitura. Comandos que precisam gravar arquivos d
 serviço `tools`: mesma imagem, sem portas, e só sobe quando chamado com `docker compose run`.
 
 ```bash
-docker compose exec app task check         # tudo: lint + tipos + testes + auditoria
+docker compose exec app task check         # tudo: lint + tipos + testes + cobertura + auditoria
 docker compose exec app task lint          # ruff check
 docker compose exec app task typecheck     # mypy
-docker compose exec app task test          # pytest
+docker compose exec app task test:fast     # TDD rápido (sem PostgreSQL nem cobertura)
+docker compose exec app task test:int      # integração (Postgres/Prolog/Argon2) e E2E reais
+docker compose exec app task test          # suíte completa com cobertura de branches (>= 95%)
 docker compose exec app task audit         # vulnerabilidades nas dependências
 
 docker compose run --rm --no-deps tools ruff format .     # formatar o código
 ```
+
+**Quando usar cada comando de teste:**
+
+- `task test:fast` (`pytest -m "not integration and not real" --no-cov`): feedback rápido no ciclo
+  TDD — roda testes unitários, contratos em memória (`test_fake_*.py`), E2E com dublês
+  (`*_endpoint.py`, `test_health.py`, `test_cors.py`) e guardas estáticos, sem acionar o PostgreSQL.
+- `task test:int` (`pytest -m "integration or real" --no-cov`): valida apenas os testes com
+  infraestrutura real (PostgreSQL, SWI-Prolog, Argon2 e rotas `*_real.py`), útil ao mexer em
+  repositórios SQL, migrations ou regras `.pl`.
+- `task test` / `task check`: roda 100% da suíte com cobertura de linhas e branches
+  (`--cov-branch --cov-fail-under=95`) e `--strict-markers`. Rode `task check` antes de abrir um PR.
+
+Os marcadores (`unit`, `contract`, `integration`, `e2e`, `real`, `property`) são aplicados
+automaticamente pelo caminho do arquivo em `tests/conftest.py`; use `@pytest.mark.property`
+explicitamente apenas em testes baseados em propriedades.
 
 O CI do GitHub Actions (veja o [README da raiz](../README.md#ci)) roda os mesmos comandos desta
 seção, mais `alembic check` e o ciclo `downgrade base` / `upgrade head`.

@@ -33,8 +33,12 @@ class DeleteUserInteractor(DeleteUserInputPort):
                 self.presenter.present_user_not_found()
                 return
 
-            if not data.password or not await self.hasher.verify(
-                RawPassword(data.password), user.password_hash
+            if (
+                not data.password
+                or "\x00" in data.password
+                or not await self.hasher.verify(
+                    RawPassword(data.password), user.password_hash
+                )
             ):
                 self.presenter.present_invalid_current_password()
                 return

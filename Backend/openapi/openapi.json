@@ -20,6 +20,7 @@
       "AccountResponse": {
         "properties": {
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -47,6 +48,7 @@
             "type": "integer"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -288,6 +290,7 @@
       "RecordedTransactionResponse": {
         "properties": {
           "account_id": {
+            "format": "uuid",
             "title": "Account Id",
             "type": "string"
           },
@@ -304,6 +307,7 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -312,12 +316,14 @@
             "type": "string"
           },
           "occurred_on": {
+            "format": "date",
             "title": "Occurred On",
             "type": "string"
           },
           "recurrence_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -436,6 +442,7 @@
       "RecurrenceResponse": {
         "properties": {
           "account_id": {
+            "format": "uuid",
             "title": "Account Id",
             "type": "string"
           },
@@ -465,6 +472,7 @@
           "ends_on": {
             "anyOf": [
               {
+                "format": "date",
                 "type": "string"
               },
               {
@@ -478,6 +486,7 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -488,6 +497,7 @@
           "last_run_on": {
             "anyOf": [
               {
+                "format": "date",
                 "type": "string"
               },
               {
@@ -499,6 +509,7 @@
           "next_occurrence_on": {
             "anyOf": [
               {
+                "format": "date",
                 "type": "string"
               },
               {
@@ -508,6 +519,7 @@
             "title": "Next Occurrence On"
           },
           "starts_on": {
+            "format": "date",
             "title": "Starts On",
             "type": "string"
           }
@@ -574,6 +586,7 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -641,6 +654,7 @@
       "StatementEntryResponse": {
         "properties": {
           "account_id": {
+            "format": "uuid",
             "title": "Account Id",
             "type": "string"
           },
@@ -657,6 +671,7 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -665,12 +680,14 @@
             "type": "string"
           },
           "occurred_on": {
+            "format": "date",
             "title": "Occurred On",
             "type": "string"
           },
           "recurrence_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -698,6 +715,7 @@
           "account_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -716,6 +734,7 @@
             "type": "integer"
           },
           "from": {
+            "format": "date",
             "title": "From",
             "type": "string"
           },
@@ -728,6 +747,7 @@
             "type": "integer"
           },
           "to": {
+            "format": "date",
             "title": "To",
             "type": "string"
           },
@@ -782,18 +802,22 @@
             "type": "string"
           },
           "from_account_id": {
+            "format": "uuid",
             "title": "From Account Id",
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
           "occurred_on": {
+            "format": "date",
             "title": "Occurred On",
             "type": "string"
           },
           "to_account_id": {
+            "format": "uuid",
             "title": "To Account Id",
             "type": "string"
           }
@@ -840,10 +864,12 @@
       "TransferListResponse": {
         "properties": {
           "from": {
+            "format": "date",
             "title": "From",
             "type": "string"
           },
           "to": {
+            "format": "date",
             "title": "To",
             "type": "string"
           },
@@ -874,18 +900,22 @@
             "type": "string"
           },
           "from_account_id": {
+            "format": "uuid",
             "title": "From Account Id",
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
           "occurred_on": {
+            "format": "date",
             "title": "Occurred On",
             "type": "string"
           },
           "to_account_id": {
+            "format": "uuid",
             "title": "To Account Id",
             "type": "string"
           }
@@ -992,6 +1022,7 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },

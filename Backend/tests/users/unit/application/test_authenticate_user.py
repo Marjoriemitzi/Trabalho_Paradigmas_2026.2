@@ -108,6 +108,16 @@ async def test_senha_vazia_e_so_credencial_invalida() -> None:
     assert presenter.invalid_credentials is True
 
 
+async def test_senha_com_byte_nul_e_so_credencial_invalida() -> None:
+    interactor, presenter, _ = await montar()
+
+    await interactor.execute(
+        AuthenticateUserInput(email="ana@acme.com", password=f"{SENHA}\x00")
+    )
+
+    assert presenter.invalid_credentials is True
+
+
 async def test_login_certo_grava_so_o_hash_do_refresh_token() -> None:
     uow = FakeUnitOfWork()
     interactor, presenter, ana = await montar(uow=uow)

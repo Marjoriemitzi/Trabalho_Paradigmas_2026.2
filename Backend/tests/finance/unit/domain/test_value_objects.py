@@ -53,6 +53,12 @@ def test_descricao_em_branco_e_recusada() -> None:
     assert erro.value.problem == "blank"
 
 
+def test_descricao_com_byte_nul_e_recusada() -> None:
+    with pytest.raises(InvalidValueError) as erro:
+        Description("Padaria\x00extra")
+    assert erro.value.problem == "invalid_format"
+
+
 def test_descricao_tem_no_maximo_200_caracteres() -> None:
     assert Description("a" * 200).text == "a" * 200
     with pytest.raises(InvalidValueError) as erro:

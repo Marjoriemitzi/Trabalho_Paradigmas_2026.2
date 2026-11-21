@@ -35,6 +35,9 @@ from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
 
 ANA, BIA = uuid.uuid4(), uuid.uuid4()
 CARTEIRA = Account.open(OwnerId(ANA), AccountName("Carteira"), AccountKind.WALLET)
+CARTEIRA_DA_BIA = Account.open(
+    OwnerId(BIA), AccountName("Carteira da Bia"), AccountKind.WALLET
+)
 
 
 def token(pessoa: uuid.UUID) -> dict[str, str]:
@@ -52,6 +55,7 @@ class Api:
 async def api() -> AsyncIterator[Api]:
     uow = FakeUnitOfWork()
     await uow.accounts.add(CARTEIRA)
+    await uow.accounts.add(CARTEIRA_DA_BIA)
     padaria = Transaction.record(
         owner=OwnerId(ANA),
         account=CARTEIRA.id,
@@ -114,6 +118,47 @@ async def test_corrigir_a_de_outra_pessoa_responde_404(api: Api) -> None:
 
     assert resposta.status_code == 404
     assert resposta.json() == {"error": "transaction_not_found"}
+
+
+async def test_corrigir_movendo_para_conta_de_outra_pessoa_responde_422(
+    api: Api,
+) -> None:
+    resposta = await api.client.put(
+        url(api),
+        json={**CORRECAO, "account_id": str(CARTEIRA_DA_BIA.id.value)},
+        headers=token(ANA),
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transaction",
+        "fields": [{"field": "account_id", "problem": "not_found"}],
+    }
+    assert not api.uow.committed
+    [gravada] = api.uow.transactions.stored
+    assert gravada.account == CARTEIRA.id
+    assert gravada.amount == Money(4590)
+    assert gravada.description == Description("Padaria")
+    assert gravada.occurred_on == date(2026, 11, 7)
+
+
+async def test_corrigir_transacao_alheia_com_conta_propria_responde_404(
+    api: Api,
+) -> None:
+    resposta = await api.client.put(
+        url(api),
+        json={**CORRECAO, "account_id": str(CARTEIRA_DA_BIA.id.value)},
+        headers=token(BIA),
+    )
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"error": "transaction_not_found"}
+    assert not api.uow.committed
+    [gravada] = api.uow.transactions.stored
+    assert gravada.account == CARTEIRA.id
+    assert gravada.amount == Money(4590)
+    assert gravada.description == Description("Padaria")
+    assert gravada.occurred_on == date(2026, 11, 7)
 
 
 async def test_corrigir_com_dado_recusado_responde_422(api: Api) -> None:

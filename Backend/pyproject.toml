@@ -100,14 +100,21 @@ filterwarnings = [
     "error::RuntimeWarning",
     "error::pytest.PytestUnraisableExceptionWarning",
 ]
-addopts = "--strict-markers --cov=app --cov-report=term-missing"
+addopts = "--strict-markers --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=95"
 markers = [
+    "unit: Testes unitários isolados em memória e guardas estáticos sem I/O externo",
+    "contract: Testes de contrato de repositórios/adapters (executados contra fakes e SQL/Prolog)",
+    "integration: Testes de integração com infraestrutura real (PostgreSQL, Prolog, Argon2)",
+    "e2e: Testes ponta a ponta da API HTTP (com dublês ou infraestrutura real)",
+    "real: Testes que exigem banco PostgreSQL e pilha real completa",
     "property: Testes baseados em propriedades (Hypothesis)",
 ]
 
 [tool.taskipy.tasks]
 run = "uvicorn app.main:app --reload"
 test = "pytest"
+"test:fast" = 'pytest -m "not integration and not real" --no-cov'
+"test:int" = 'pytest -m "integration or real" --no-cov'
 lint = "ruff check ."
 format = "ruff format ."
 typecheck = "mypy src tests"
