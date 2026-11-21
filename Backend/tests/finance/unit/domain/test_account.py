@@ -15,6 +15,10 @@ def test_nome_da_conta_perde_os_espacos_das_pontas() -> None:
     assert AccountName("  Nubank  ").text == "Nubank"
 
 
+def test_nome_da_conta_tem_no_maximo_60_caracteres() -> None:
+    assert AccountName("a" * 60).text == "a" * 60
+
+
 @pytest.mark.parametrize(
     ("nome", "problema"), [("   ", "blank"), ("a" * 61, "too_long")]
 )

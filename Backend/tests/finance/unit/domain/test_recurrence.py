@@ -8,6 +8,7 @@ from app.finance.domain.exceptions import InvalidValueError
 from app.finance.domain.services.next_occurrence import next_occurrence
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.active_range import ActiveRange
+from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.frequency import Frequency
 from app.finance.domain.value_objects.money import Money
@@ -72,24 +73,60 @@ def nova() -> Recurrence:
     )
 
 
+def test_criar_recorrencia_guarda_todos_os_campos() -> None:
+    dono = OwnerId(uuid.uuid4())
+    conta = AccountId.new()
+    categoria = Category("moradia")
+    janela = ActiveRange(date(2026, 12, 1), date(2027, 12, 1))
+
+    recorrencia = Recurrence.create(
+        owner=dono,
+        account=conta,
+        kind=TransactionKind.EXPENSE,
+        amount=Money(150000),
+        description=Description("Aluguel"),
+        category=categoria,
+        schedule=MENSAL_DIA_5,
+        window=janela,
+    )
+
+    assert recorrencia.owner == dono
+    assert recorrencia.account == conta
+    assert recorrencia.kind is TransactionKind.EXPENSE
+    assert recorrencia.amount == Money(150000)
+    assert recorrencia.description == Description("Aluguel")
+    assert recorrencia.category == categoria
+    assert recorrencia.schedule == MENSAL_DIA_5
+    assert recorrencia.starts_on == date(2026, 12, 1)
+    assert recorrencia.ends_on == date(2027, 12, 1)
+    assert recorrencia.last_run_on is None
+
+
 def test_revisar_troca_os_dados_e_mantem_a_identidade_e_o_dono() -> None:
     recorrencia = nova()
     id_antes, dono = recorrencia.id, recorrencia.owner
+    outra_conta = AccountId.new()
+    outra_categoria = Category("mercado")
 
     recorrencia.revise(
-        account=recorrencia.account,
+        account=outra_conta,
         kind=TransactionKind.INCOME,
         amount=Money(1),
         description=Description("Outra"),
-        category=None,
+        category=outra_categoria,
         schedule=Schedule(Frequency.WEEKLY, 2),
         window=ActiveRange(date(2027, 1, 1), date(2027, 2, 1)),
     )
 
     assert recorrencia.id == id_antes
     assert recorrencia.owner == dono
+    assert recorrencia.account == outra_conta
     assert recorrencia.kind is TransactionKind.INCOME
+    assert recorrencia.amount == Money(1)
+    assert recorrencia.description == Description("Outra")
+    assert recorrencia.category == outra_categoria
     assert recorrencia.schedule == Schedule(Frequency.WEEKLY, 2)
+    assert recorrencia.starts_on == date(2027, 1, 1)
     assert recorrencia.ends_on == date(2027, 2, 1)
 
 
@@ -121,6 +158,7 @@ def test_comeca_em_max_de_hoje_e_do_inicio() -> None:
 
 def test_respeita_o_fim_e_devolve_none_depois_dele() -> None:
     assert proxima(date(2026, 12, 1), termina=date(2026, 12, 31)) == date(2026, 12, 5)
+    assert proxima(date(2026, 12, 5), termina=date(2026, 12, 5)) == date(2026, 12, 5)
     assert proxima(date(2026, 12, 6), termina=date(2026, 12, 31)) is None
 
 

@@ -66,6 +66,7 @@ def test_ja_processada_hoje_nao_tem_nada_a_lancar() -> None:
     execucao = pending_run(r, date(2026, 12, 5), REGRAS)
 
     assert execucao.days == ()
+    assert execucao.skipped_days == 0
     assert execucao.last_day is None
 
 
@@ -81,7 +82,11 @@ def test_o_fim_no_meio_da_janela_corta_as_datas_e_o_ultimo_dia() -> None:
 def test_comeco_no_futuro_nao_lanca_nada() -> None:
     r = recorrencia(MENSAL_5, date(2027, 1, 1))
 
-    assert pending_run(r, date(2026, 12, 20), REGRAS).days == ()
+    execucao = pending_run(r, date(2026, 12, 20), REGRAS)
+
+    assert execucao.days == ()
+    assert execucao.skipped_days == 0
+    assert execucao.last_day is None
 
 
 def test_o_limite_de_62_dias_pula_o_que_e_mais_antigo_e_conta_os_dias() -> None:

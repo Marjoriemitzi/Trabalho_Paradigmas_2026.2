@@ -20,6 +20,7 @@ def test_dinheiro_nao_pode_ser_zero_nem_negativo() -> None:
         with pytest.raises(InvalidValueError) as erro:
             Money(invalido)
         assert erro.value.problem == "not_positive"
+        assert str(erro.value) == "not_positive"
 
 
 def test_tipo_da_transacao_vem_do_texto() -> None:
@@ -84,6 +85,7 @@ def test_periodo_tem_no_maximo_um_ano() -> None:
 
 
 def test_total_da_categoria_calcula_a_media_arredondada() -> None:
+    assert CategoryTotal(Category("mercado"), 1, 1).average_cents == 1
     assert CategoryTotal(Category("mercado"), 1000, 3).average_cents == 333
     assert CategoryTotal(Category("mercado"), 1001, 2).average_cents == 501
 
