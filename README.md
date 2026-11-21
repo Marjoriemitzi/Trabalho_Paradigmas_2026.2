@@ -4,7 +4,7 @@ Gerenciador de finanças pessoais. Monorepo com:
 
 | Pasta       | O que é                                 | Detalhes                                 |
 | ----------- | --------------------------------------- | ---------------------------------------- |
-| `Backend/`  | API em FastAPI + Prolog, com PostgreSQL | [Backend/README.md](Backend/README.md)   |
+| `Backend/`  | API em FastAPI + Prolog, com PostgreSQL | [Backend/README.md](Backend/README.md), [CONTRIBUTING](Backend/CONTRIBUTING.md) |
 | `Frontend/` | Interface em Elm                        | [Frontend/README.md](Frontend/README.md) |
 
 Na raiz ficam os arquivos do projeto todo:

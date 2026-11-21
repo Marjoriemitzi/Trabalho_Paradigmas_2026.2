@@ -2,6 +2,9 @@
 
 Backend em FastAPI + Prolog, Clean Architecture + DDD.
 
+**Vai criar uma feature?** Leia o [CONTRIBUTING.md](CONTRIBUTING.md): a ordem de trabalho, onde
+registrar cada peça e as regras que um PR precisa respeitar.
+
 Todo o backend roda dentro do Docker: a API, o banco, os testes, o lint e as migrations.
 Nenhuma dependência Python do projeto é instalada fora dos containers.
 
@@ -159,8 +162,9 @@ docker compose exec app alembic history
 
 `migrations/env.py` lê a `DATABASE_URL` do ambiente. Nunca coloque senha no `alembic.ini`.
 
-O `--autogenerate` só funciona depois que `target_metadata` em `migrations/env.py` apontar para o
-`MetaData` dos modelos do SQLAlchemy. Até lá, use `alembic revision -m "descrição"` sem ele.
+O `--autogenerate` compara o banco com o `Base.metadata` (`target_metadata` em `migrations/env.py`).
+Ele só enxerga um model que tenha sido importado ali: ao criar um model novo, acrescente o import em
+`migrations/env.py`. Revise sempre o arquivo gerado (veja o [CONTRIBUTING](CONTRIBUTING.md)).
 
 ## Dependências
 
