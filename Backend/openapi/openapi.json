@@ -336,6 +336,175 @@
         "title": "RecordedTransactionResponse",
         "type": "object"
       },
+      "RecurrenceListResponse": {
+        "properties": {
+          "recurrences": {
+            "items": {
+              "$ref": "#/components/schemas/RecurrenceResponse"
+            },
+            "title": "Recurrences",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recurrences"
+        ],
+        "title": "RecurrenceListResponse",
+        "type": "object"
+      },
+      "RecurrenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "day": {
+            "title": "Day",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "ends_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends On"
+          },
+          "frequency": {
+            "title": "Frequency",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "starts_on": {
+            "format": "date",
+            "title": "Starts On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "kind",
+          "amount_cents",
+          "description",
+          "frequency",
+          "day",
+          "starts_on"
+        ],
+        "title": "RecurrenceRequest",
+        "type": "object"
+      },
+      "RecurrenceResponse": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "day": {
+            "title": "Day",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "ends_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends On"
+          },
+          "frequency": {
+            "title": "Frequency",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "next_occurrence_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Occurrence On"
+          },
+          "starts_on": {
+            "title": "Starts On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "kind",
+          "amount_cents",
+          "description",
+          "category",
+          "frequency",
+          "day",
+          "starts_on",
+          "ends_on",
+          "next_occurrence_on"
+        ],
+        "title": "RecurrenceResponse",
+        "type": "object"
+      },
       "RefreshSessionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1196,6 +1365,181 @@
         "summary": "List Categories",
         "tags": [
           "categories"
+        ]
+      }
+    },
+    "/api/v1/recurrences": {
+      "get": {
+        "description": "Em ordem de próxima data (as sem data no fim) e depois por descrição.",
+        "operationId": "list_recurrences_api_v1_recurrences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurrenceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Sem token, ou token inválido"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Recurrences",
+        "tags": [
+          "recurrences"
+        ]
+      },
+      "post": {
+        "description": "Cadastra a regra de repetição. As transações são lançadas pelo comando diário; com `starts_on` no passado, ele lança as ocorrências atrasadas até o limite de recuperação de 62 dias.",
+        "operationId": "create_recurrence_api_v1_recurrences_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecurrenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurrenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Sem token, ou token inválido"
+          },
+          "422": {
+            "description": "Pedido fora do formato ou com dados recusados"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Recurrence",
+        "tags": [
+          "recurrences"
+        ]
+      }
+    },
+    "/api/v1/recurrences/{recurrence_id}": {
+      "delete": {
+        "description": "Não apaga as transações que a recorrência já lançou.",
+        "operationId": "delete_recurrence_api_v1_recurrences__recurrence_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recurrence_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recurrence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Sem token, ou token inválido"
+          },
+          "404": {
+            "description": "A recorrência não existe entre as suas"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Recurrence",
+        "tags": [
+          "recurrences"
+        ]
+      },
+      "put": {
+        "description": "Troca a regra inteira. Só afeta o futuro: o já lançado não muda.",
+        "operationId": "update_recurrence_api_v1_recurrences__recurrence_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recurrence_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recurrence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecurrenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurrenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Sem token, ou token inválido"
+          },
+          "404": {
+            "description": "A recorrência não existe entre as suas"
+          },
+          "422": {
+            "description": "Pedido fora do formato ou com dados recusados"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Recurrence",
+        "tags": [
+          "recurrences"
         ]
       }
     },

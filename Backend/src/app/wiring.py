@@ -10,21 +10,29 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.finance.application.ports.transaction_check import TransactionCheck
 from app.finance.composition import (
     create_account_factory,
+    create_recurrence_factory,
     create_transfer_factory,
     delete_account_factory,
+    delete_recurrence_factory,
     delete_transaction_factory,
     delete_transfer_factory,
     get_statement_factory,
     list_accounts_factory,
     list_categories_factory,
+    list_recurrences_factory,
     list_transfers_factory,
     record_transaction_factory,
     rename_account_factory,
+    update_recurrence_factory,
     update_transaction_factory,
     update_transfer_factory,
 )
 from app.finance.domain.services.categorizer import Categorizer
+from app.finance.domain.services.recurrence_rules import RecurrenceRules
 from app.finance.infrastructure.prolog.prolog_categorizer import PrologCategorizer
+from app.finance.infrastructure.prolog.prolog_recurrence_rules import (
+    PrologRecurrenceRules,
+)
 from app.shared.domain.clock import Clock as DayClock
 from app.shared.infrastructure.clock import ZoneInfoClock
 from app.shared.infrastructure.config.settings import Settings
@@ -66,6 +74,7 @@ class Infra:
     instant_clock: InstantClock
     day_clock: DayClock
     categorizer: Categorizer
+    recurrence_rules: RecurrenceRules
     checks: tuple[TransactionCheck, ...]
 
 
@@ -81,6 +90,7 @@ def build_infra(
         instant_clock=SystemClock(),
         day_clock=ZoneInfoClock(ZoneInfo(settings.timezone)),
         categorizer=PrologCategorizer(prolog, settings.prolog_rules_dir),
+        recurrence_rules=PrologRecurrenceRules(prolog, settings.prolog_rules_dir),
         checks=(),
     )
 
@@ -166,3 +176,13 @@ def install_finance(app: FastAPI, infra: Infra) -> None:
     app.state.rename_account = rename_account_factory(sessions)
     app.state.delete_account = delete_account_factory(sessions)
     app.state.list_categories = list_categories_factory(sessions)
+    app.state.create_recurrence = create_recurrence_factory(
+        sessions, infra.recurrence_rules, infra.day_clock
+    )
+    app.state.update_recurrence = update_recurrence_factory(
+        sessions, infra.recurrence_rules, infra.day_clock
+    )
+    app.state.delete_recurrence = delete_recurrence_factory(sessions)
+    app.state.list_recurrences = list_recurrences_factory(
+        sessions, infra.recurrence_rules, infra.day_clock
+    )

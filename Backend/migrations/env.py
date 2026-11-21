@@ -11,6 +11,7 @@ from app.shared.infrastructure.persistence.database import Base
 
 from app.finance.infrastructure.persistence.models import account_model
 from app.finance.infrastructure.persistence.models import category_model
+from app.finance.infrastructure.persistence.models import recurrence_model
 from app.finance.infrastructure.persistence.models import transaction_model
 from app.finance.infrastructure.persistence.models import transfer_model
 from app.users.infrastructure.persistence.models import auth_attempt_model

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.finance.presentation.api.v1.routers import (
     accounts,
     categories,
+    recurrences,
     transactions,
     transfers,
 )
@@ -57,6 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(accounts.router)
     app.include_router(categories.router)
+    app.include_router(recurrences.router)
     app.include_router(transactions.router)
     app.include_router(transfers.router)
 

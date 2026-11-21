@@ -3,6 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.finance.application.ports.account_usage import AccountUsage
 from app.finance.domain.repositories.account_repository import AccountRepository
+from app.finance.domain.repositories.recurrence_repository import (
+    RecurrenceRepository,
+)
 from app.finance.domain.repositories.transaction_repository import (
     TransactionRepository,
 )
@@ -13,6 +16,9 @@ from app.finance.infrastructure.persistence.repositories.sql_account_repository 
 )
 from app.finance.infrastructure.persistence.repositories.sql_account_usage import (
     SqlAccountUsage,
+)
+from app.finance.infrastructure.persistence.repositories.sql_recurrence_repository import (  # noqa: E501
+    SqlRecurrenceRepository,
 )
 from app.finance.infrastructure.persistence.repositories.sql_transaction_repository import (  # noqa: E501
     SqlTransactionRepository,
@@ -36,6 +42,10 @@ class TestSqlAccountUsage(AccountUsageContract):
     @pytest.fixture
     def transfers(self, session: AsyncSession) -> TransferRepository:
         return SqlTransferRepository(session)
+
+    @pytest.fixture
+    def recurrences(self, session: AsyncSession) -> RecurrenceRepository:
+        return SqlRecurrenceRepository(session)
 
     @pytest.fixture
     def usage(self, session: AsyncSession) -> AccountUsage:

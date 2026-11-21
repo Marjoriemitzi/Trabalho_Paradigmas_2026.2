@@ -40,6 +40,8 @@ Regras para quem acrescenta um código:
 | `invalid_period` | 422 | Período recusado. | `fields`: `to` (`end_before_start`, `too_long`) | `GET /api/v1/transactions`, `GET /api/v1/transfers` |
 | `invalid_transfer` | 422 | Dado da transferência recusado. | `fields`: `amount_cents` (`not_positive`), `description` (`blank`, `too_long`), `from_account_id` e `to_account_id` (`not_found`), `to_account_id` (`same_account`) | `POST` e `PUT /api/v1/transfers` |
 | `transfer_not_found` | 404 | A transferência não existe entre as da pessoa. | — | `PUT` e `DELETE /api/v1/transfers/{id}` |
+| `invalid_recurrence` | 422 | Dado da recorrência recusado. | `fields`: `account_id` (`not_found`), `kind` (`unknown`), `amount_cents` (`not_positive`), `description` (`blank`, `too_long`), `category` (`invalid_format`, `not_found`), `frequency` (`unknown`), `day` (`out_of_range`), `ends_on` (`end_before_start`) | `POST` e `PUT /api/v1/recurrences` |
+| `recurrence_not_found` | 404 | A recorrência não existe entre as da pessoa. | — | `PUT` e `DELETE /api/v1/recurrences/{id}` |
 
 ## Problemas de campo
 
@@ -55,6 +57,7 @@ Valores de `fields[].problem` que vêm do domínio.
 | `not_found` | A referência (conta ou categoria) não existe para a pessoa. |
 | `same_account` | A transferência tem a mesma conta na origem e no destino. |
 | `end_before_start` | A data final é anterior à inicial. |
+| `out_of_range` | O dia está fora da faixa da frequência (1 a 31 no mês, 1 a 7 na semana). |
 
 ## Avisos
 

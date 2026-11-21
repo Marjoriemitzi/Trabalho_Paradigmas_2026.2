@@ -28,6 +28,16 @@ from app.finance.presentation.api.v1.controllers.record_transaction_controller i
     RecordTransactionController,
     RecordTransactionFactory,
 )
+from app.finance.presentation.api.v1.controllers.recurrences_controllers import (
+    CreateRecurrenceController,
+    CreateRecurrenceFactory,
+    DeleteRecurrenceController,
+    DeleteRecurrenceFactory,
+    ListRecurrencesController,
+    ListRecurrencesFactory,
+    UpdateRecurrenceController,
+    UpdateRecurrenceFactory,
+)
 from app.finance.presentation.api.v1.controllers.transfers_controllers import (
     CreateTransferController,
     CreateTransferFactory,
@@ -103,3 +113,23 @@ def get_update_transfer_controller(request: Request) -> UpdateTransferController
 def get_list_transfers_controller(request: Request) -> ListTransfersController:
     factory: ListTransfersFactory = request.app.state.list_transfers
     return ListTransfersController(factory)
+
+
+def get_create_recurrence_controller(request: Request) -> CreateRecurrenceController:
+    factory: CreateRecurrenceFactory = request.app.state.create_recurrence
+    return CreateRecurrenceController(factory)
+
+
+def get_update_recurrence_controller(request: Request) -> UpdateRecurrenceController:
+    factory: UpdateRecurrenceFactory = request.app.state.update_recurrence
+    return UpdateRecurrenceController(factory)
+
+
+def get_delete_recurrence_controller(request: Request) -> DeleteRecurrenceController:
+    factory: DeleteRecurrenceFactory = request.app.state.delete_recurrence
+    return DeleteRecurrenceController(factory)
+
+
+def get_list_recurrences_controller(request: Request) -> ListRecurrencesController:
+    factory: ListRecurrencesFactory = request.app.state.list_recurrences
+    return ListRecurrencesController(factory)
