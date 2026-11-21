@@ -30,6 +30,9 @@ URL = "/api/v1/transfers"
 ANA, BIA = uuid.uuid4(), uuid.uuid4()
 CORRENTE = Account.open(OwnerId(ANA), AccountName("Corrente"), AccountKind.CHECKING)
 CARTAO = Account.open(OwnerId(ANA), AccountName("Cartão"), AccountKind.CREDIT_CARD)
+CARTEIRA_DA_BIA = Account.open(
+    OwnerId(BIA), AccountName("Carteira"), AccountKind.WALLET
+)
 FATURA = {
     "from_account_id": str(CORRENTE.id.value),
     "to_account_id": str(CARTAO.id.value),
@@ -52,7 +55,7 @@ class Api:
 @pytest.fixture
 async def api() -> AsyncIterator[Api]:
     uow = FakeUnitOfWork()
-    for conta in (CORRENTE, CARTAO):
+    for conta in (CORRENTE, CARTAO, CARTEIRA_DA_BIA):
         await uow.accounts.add(conta)
 
     def criar(presenter: CreateTransferOutputPort) -> CreateTransferInputPort:
@@ -107,6 +110,54 @@ async def test_contas_de_outra_pessoa_sao_recusadas(api: Api) -> None:
     assert resposta.json()["fields"] == [
         {"field": "from_account_id", "problem": "not_found"}
     ]
+
+
+async def test_origem_propria_e_destino_alheio_responde_422(api: Api) -> None:
+    resposta = await api.client.post(
+        URL,
+        json={**FATURA, "to_account_id": str(CARTEIRA_DA_BIA.id.value)},
+        headers=token(ANA),
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transfer",
+        "fields": [{"field": "to_account_id", "problem": "not_found"}],
+    }
+    assert api.uow.transfers.stored == []
+
+
+async def test_origem_alheia_e_destino_proprio_responde_422(api: Api) -> None:
+    resposta = await api.client.post(
+        URL,
+        json={**FATURA, "from_account_id": str(CARTEIRA_DA_BIA.id.value)},
+        headers=token(ANA),
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transfer",
+        "fields": [{"field": "from_account_id", "problem": "not_found"}],
+    }
+    assert api.uow.transfers.stored == []
+
+
+async def test_apagar_transferencia_de_outra_pessoa_responde_404_e_nao_apaga(
+    api: Api,
+) -> None:
+    criada = await api.client.post(URL, json=FATURA, headers=token(ANA))
+    assert criada.status_code == 201
+    transfer_id = criada.json()["id"]
+    fluxos_antes = await api.uow.transfers.flows_by_account(OwnerId(ANA))
+
+    resposta = await api.client.delete(f"{URL}/{transfer_id}", headers=token(BIA))
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"error": "transfer_not_found"}
+    [gravada] = api.uow.transfers.stored
+    assert str(gravada.id.value) == transfer_id
+    assert gravada.amount.cents == 150000
+    assert await api.uow.transfers.flows_by_account(OwnerId(ANA)) == fluxos_antes
 
 
 async def test_apagar_a_que_nao_existe_responde_404(api: Api) -> None:
