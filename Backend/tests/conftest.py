@@ -20,8 +20,68 @@ from app.main import create_app
 from app.users.infrastructure.persistence.models.user_model import UserModel
 
 BACKEND = Path(__file__).resolve().parents[1]
+TESTS_DIR = Path(__file__).resolve().parent
+MARKERS: dict[str, pytest.MarkDecorator] = {
+    "unit": pytest.mark.unit,
+    "contract": pytest.mark.contract,
+    "integration": pytest.mark.integration,
+    "e2e": pytest.mark.e2e,
+    "real": pytest.mark.real,
+    "property": pytest.mark.property,
+}
+SUITE_MARKERS = frozenset(MARKERS)
+ROOT_E2E_FILES = frozenset({"test_health.py", "test_cors.py"})
 
 pytest.register_assert_rewrite("tests.users.contracts", "tests.finance.contracts")
+
+
+def markers_for_path(path: Path, *, is_contract: bool = False) -> tuple[str, ...]:
+    try:
+        rel = path.resolve().relative_to(TESTS_DIR)
+    except ValueError:
+        return ()
+    nome, partes = rel.name, rel.parts
+    if nome.endswith("_real.py"):
+        return ("e2e", "real")
+    if "unit" in partes:
+        return (
+            ("unit", "contract")
+            if nome.startswith("test_fake_") or is_contract
+            else ("unit",)
+        )
+    if "integration" in partes:
+        return (
+            ("integration", "contract")
+            if nome.startswith("test_sql_") or is_contract
+            else ("integration",)
+        )
+    if "e2e" in partes or (len(partes) == 1 and nome in ROOT_E2E_FILES):
+        return ("e2e",)
+    return ("unit",) if len(partes) == 1 and nome.startswith("test_") else ()
+
+
+def _uses_contract(item: pytest.Item) -> bool:
+    if not isinstance(item, pytest.Function) or item.cls is None:
+        return False
+    return any(".contracts." in base.__module__ for base in item.cls.__mro__)
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    sem_marcador: list[str] = []
+    for item in items:
+        existentes = {m.name for m in item.iter_markers()}
+        for nome in markers_for_path(item.path, is_contract=_uses_contract(item)):
+            if nome not in existentes:
+                item.add_marker(MARKERS[nome])
+                existentes.add(nome)
+        if not (existentes & SUITE_MARKERS):
+            sem_marcador.append(item.nodeid)
+    if sem_marcador:
+        lista = ", ".join(sem_marcador)
+        raise pytest.UsageError(f"Testes sem marcador de suíte registrado: {lista}")
 
 
 @pytest.fixture(scope="session")
