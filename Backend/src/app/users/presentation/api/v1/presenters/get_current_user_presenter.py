@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -20,9 +22,11 @@ class GetCurrentUserHttpPresenter(GetCurrentUserOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_user(self, user: UserProfile) -> None:
         corpo = UserProfileResponse.from_profile(user).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_200_OK)
 
+    @override
     def present_user_not_found(self) -> None:
         raise invalid_token()

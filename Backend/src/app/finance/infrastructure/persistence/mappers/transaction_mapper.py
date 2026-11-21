@@ -4,6 +4,7 @@ from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.money import Money
 from app.finance.domain.value_objects.owner_id import OwnerId
+from app.finance.domain.value_objects.recurrence_id import RecurrenceId
 from app.finance.domain.value_objects.transaction_id import TransactionId
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 from app.finance.infrastructure.persistence.models.transaction_model import (
@@ -21,6 +22,9 @@ def to_model(transaction: Transaction) -> TransactionModel:
         description=transaction.description.text,
         category=transaction.category.name,
         occurred_on=transaction.occurred_on,
+        recurrence_id=(
+            None if transaction.recurrence is None else transaction.recurrence.value
+        ),
     )
 
 
@@ -34,4 +38,7 @@ def to_entity(model: TransactionModel) -> Transaction:
         description=Description(model.description),
         category=Category(model.category),
         occurred_on=model.occurred_on,
+        recurrence=(
+            None if model.recurrence_id is None else RecurrenceId(model.recurrence_id)
+        ),
     )

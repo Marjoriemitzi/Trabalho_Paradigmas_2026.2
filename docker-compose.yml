@@ -9,7 +9,13 @@ x-app-env: &app-env
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   ENABLE_DOCS: ${ENABLE_DOCS:-false}
   JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
-  JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-30}
+  JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-15}
+  REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-30}
+  TIMEZONE: ${TIMEZONE:-America/Sao_Paulo}
+  APP_ENV: ${APP_ENV:-development}
+  DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
   COVERAGE_FILE: /tmp/.coverage
   PYTEST_ADDOPTS: -p no:cacheprovider
   RUFF_CACHE_DIR: /tmp/.ruff_cache
@@ -43,6 +49,8 @@ services:
       - ./Backend/tests:/app/tests:ro
       - ./Backend/rules:/app/rules:ro
       - ./Backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./Backend/docs:/app/docs:ro
+      - ./Backend/openapi:/app/openapi:ro
       - ./Backend/migrations:/app/migrations:ro
       - ./Backend/alembic.ini:/app/alembic.ini:ro
     ports:
@@ -51,6 +59,28 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  scheduler:
+    <<: *hardening
+    image: finance-manager-dev:local
+    pull_policy: never
+    command: python -m app.run_due_recurrences --every 3600
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    volumes:
+      - ./Backend/src:/app/src:ro
+      - ./Backend/rules:/app/rules:ro
+      - ./Backend/pyproject.toml:/app/pyproject.toml:ro
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
 
   tools:
     <<: *hardening
@@ -67,6 +97,8 @@ services:
       - ./Backend/tests:/app/tests
       - ./Backend/migrations:/app/migrations
       - ./Backend/pyproject.toml:/app/pyproject.toml
+      - ./Backend/docs:/app/docs
+      - ./Backend/openapi:/app/openapi
       - ./Backend/poetry.lock:/app/poetry.lock
       - ./Backend/rules:/app/rules:ro
       - ./Backend/alembic.ini:/app/alembic.ini:ro

@@ -8,6 +8,7 @@ from app.users.domain.entities.user import User
 class RegisterUserInput:
     email: str
     password: str = field(repr=False)
+    client_ip: str = "unknown"
 
 
 @dataclass(frozen=True, slots=True)

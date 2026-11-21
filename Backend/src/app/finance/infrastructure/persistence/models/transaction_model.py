@@ -23,6 +23,12 @@ class TransactionModel(Base):
         CheckConstraint("amount_cents > 0", name="amount_positive"),
         CheckConstraint("kind IN ('income', 'expense')", name="kind_known"),
         Index("ix_transactions_owner_id_occurred_on", "owner_id", "occurred_on"),
+        Index(
+            "uq_transactions_recurrence_id_occurred_on",
+            "recurrence_id",
+            "occurred_on",
+            unique=True,
+        ),
         ForeignKeyConstraint(
             ["account_id", "owner_id"],
             ["accounts.id", "accounts.owner_id"],
@@ -47,6 +53,9 @@ class TransactionModel(Base):
     description: Mapped[str] = mapped_column(String(200))
     category: Mapped[str] = mapped_column(String(40))
     occurred_on: Mapped[date] = mapped_column(Date)
+    recurrence_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("recurrences.id", ondelete="SET NULL")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

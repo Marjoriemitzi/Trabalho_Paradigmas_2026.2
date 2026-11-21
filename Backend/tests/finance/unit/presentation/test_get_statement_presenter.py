@@ -30,6 +30,7 @@ EXTRATO = StatementOutput(
             description="Padaria",
             category="mercado",
             occurred_on="2026-11-07",
+            recurrence_id=None,
         ),
     ),
     transfers_in_cents=150000,
@@ -71,6 +72,7 @@ def test_extrato_vira_200_com_from_e_to_como_no_pedido() -> None:
                 "description": "Padaria",
                 "category": "mercado",
                 "occurred_on": "2026-11-07",
+                "recurrence_id": None,
             }
         ],
         "transfers_in_cents": 150000,

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.change_transaction import UpdateTransactionInput
 from app.finance.application.dtos.record_transaction import RecordedTransaction
@@ -35,6 +35,7 @@ class UpdateTransactionInteractor(UpdateTransactionInputPort):
     presenter: UpdateTransactionOutputPort
     checks: tuple[TransactionCheck, ...] = ()
 
+    @override
     async def execute(self, data: UpdateTransactionInput) -> None:
         try:
             campos = read_transaction_fields(data, self.categorizer)

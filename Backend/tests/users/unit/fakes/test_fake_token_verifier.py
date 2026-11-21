@@ -1,10 +1,14 @@
-from app.users.application.ports.token_verifier import TokenVerifier
+from typing import TYPE_CHECKING
+
 from app.users.domain.entities.user import User
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from app.users.domain.value_objects.role import Role
 from tests.users.fakes.fake_token_issuer import FakeTokenIssuer
 from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
+
+if TYPE_CHECKING:
+    from app.users.application.ports.token_verifier import TokenVerifier
 
 
 def test_aceita_o_token_do_emissor_falso() -> None:
@@ -16,6 +20,7 @@ def test_aceita_o_token_do_emissor_falso() -> None:
     assert autenticado is not None
     assert autenticado.id == user.id
     assert autenticado.role is Role.USER
+    assert autenticado.jti == user.id.value
 
 
 def test_recusa_qualquer_outro_texto() -> None:

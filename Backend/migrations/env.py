@@ -11,8 +11,12 @@ from app.shared.infrastructure.persistence.database import Base
 
 from app.finance.infrastructure.persistence.models import account_model
 from app.finance.infrastructure.persistence.models import category_model
+from app.finance.infrastructure.persistence.models import recurrence_model
 from app.finance.infrastructure.persistence.models import transaction_model
 from app.finance.infrastructure.persistence.models import transfer_model
+from app.users.infrastructure.persistence.models import auth_attempt_model
+from app.users.infrastructure.persistence.models import refresh_token_model
+from app.users.infrastructure.persistence.models import revoked_token_model
 from app.users.infrastructure.persistence.models import user_model
 
 config = context.config
@@ -37,13 +41,18 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    version_table_schema = config.attributes.get("version_table_schema")
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table_schema=version_table_schema,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
 
-async def run_async_migrations() -> None:
 
+async def run_async_migrations() -> None:
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -55,7 +64,12 @@ async def run_async_migrations() -> None:
 
     await connectable.dispose()
 
+
 def run_migrations_online() -> None:
+    connectable = config.attributes.get("connection")
+    if connectable is not None:
+        do_run_migrations(connectable)
+        return
     asyncio.run(run_async_migrations())
 
 if context.is_offline_mode():

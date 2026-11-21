@@ -5,3 +5,4 @@ from dataclasses import dataclass, field
 class AuthenticateUserInput:
     email: str
     password: str = field(repr=False)
+    client_ip: str = "unknown"

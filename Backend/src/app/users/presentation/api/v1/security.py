@@ -1,10 +1,13 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.shared.presentation.api.errors import ApiError
 from app.users.application.ports.token_verifier import AuthenticatedUser, TokenVerifier
+
+if TYPE_CHECKING:
+    from app.users.application.ports.access_token_check import AccessTokenCheck
 
 _bearer = HTTPBearer(
     auto_error=False, description="O access_token devolvido por /api/v1/auth/login"
@@ -27,7 +30,7 @@ def invalid_token() -> ApiError:
     )
 
 
-def require_authenticated_user(
+async def require_authenticated_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> AuthenticatedUser:
@@ -37,7 +40,26 @@ def require_authenticated_user(
     current = verifier.verify(credentials.credentials)
     if current is None:
         raise invalid_token()
+    check: AccessTokenCheck = request.app.state.access_token_check
+    if not await check.is_valid(current):
+        raise invalid_token()
     return current
 
 
 CurrentUser = Annotated[AuthenticatedUser, Depends(require_authenticated_user)]
+
+
+def optional_authenticated_user(
+    request: Request,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> AuthenticatedUser | None:
+    """Só identifica quem mandou um access token válido; nunca recusa o pedido."""
+    if credentials is None:
+        return None
+    verifier: TokenVerifier = request.app.state.token_verifier
+    return verifier.verify(credentials.credentials)
+
+
+OptionalCurrentUser = Annotated[
+    AuthenticatedUser | None, Depends(optional_authenticated_user)
+]

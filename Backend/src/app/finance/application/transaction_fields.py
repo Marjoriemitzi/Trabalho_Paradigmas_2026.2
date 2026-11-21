@@ -64,16 +64,31 @@ def read_transaction_fields(
     )
 
 
+async def check_references(
+    uow: UnitOfWork,
+    owner: OwnerId,
+    account: AccountId,
+    kind: TransactionKind,
+    category: Category | None,
+) -> InvalidFieldError | None:
+    """A conta é da pessoa e a categoria, se vier, existe para o tipo."""
+    if await uow.accounts.get(owner, account) is None:
+        return InvalidFieldError("account_id", "not_found")
+    if category is not None and not await uow.categories.contains(kind, category):
+        return InvalidFieldError("category", "not_found")
+    return None
+
+
 async def reference_problem(
     uow: UnitOfWork, owner: OwnerId, fields: TransactionFields
 ) -> InvalidFieldError | None:
-    if await uow.accounts.get(owner, fields.account) is None:
-        return InvalidFieldError("account_id", "not_found")
-    if fields.category_from_request and not await uow.categories.contains(
-        fields.kind, fields.category
-    ):
-        return InvalidFieldError("category", "not_found")
-    return None
+    return await check_references(
+        uow,
+        owner,
+        fields.account,
+        fields.kind,
+        fields.category if fields.category_from_request else None,
+    )
 
 
 async def run_checks(

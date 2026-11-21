@@ -1,8 +1,12 @@
-from app.users.application.ports.token_issuer import TokenIssuer
+from typing import TYPE_CHECKING
+
 from app.users.domain.entities.user import User
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from tests.users.fakes.fake_token_issuer import FakeTokenIssuer
+
+if TYPE_CHECKING:
+    from app.users.application.ports.token_issuer import TokenIssuer
 
 
 def test_gera_um_token_previsivel_para_o_usuario() -> None:

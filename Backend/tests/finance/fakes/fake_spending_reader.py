@@ -1,10 +1,14 @@
+from typing import TYPE_CHECKING
+
 from app.finance.domain.value_objects.account_id import AccountId
-from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.category_total import CategoryTotal
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 from tests.finance.fakes.fake_transaction_repository import FakeTransactionRepository
+
+if TYPE_CHECKING:
+    from app.finance.domain.value_objects.category import Category
 
 
 class FakeSpendingReader:

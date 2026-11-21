@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import date
 
 from app.finance.domain.entities.transaction import Transaction
+from app.finance.domain.exceptions import DuplicateOccurrenceError
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
@@ -14,6 +15,12 @@ class FakeTransactionRepository:
         self.stored: list[Transaction] = []
 
     async def add(self, transaction: Transaction) -> None:
+        if transaction.recurrence is not None and any(
+            t.recurrence == transaction.recurrence
+            and t.occurred_on == transaction.occurred_on
+            for t in self.stored
+        ):
+            raise DuplicateOccurrenceError
         self.stored.append(transaction)
 
     async def get(

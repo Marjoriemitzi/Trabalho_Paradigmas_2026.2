@@ -13,7 +13,13 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       ENABLE_DOCS: ${ENABLE_DOCS:-false}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
-      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-30}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-15}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-30}
+      TIMEZONE: ${TIMEZONE:-America/Sao_Paulo}
+      APP_ENV: ${APP_ENV:-development}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     volumes:
       - ./Backend:/app
       - ./Backend/Dockerfile:/app/Dockerfile:ro

@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -20,6 +22,7 @@ class ListCategoriesHttpPresenter(ListCategoriesOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_categories(self, categories: tuple[CategoryOutput, ...]) -> None:
         corpo = CategoryListResponse(
             categories=[CategoryResponse.from_output(c) for c in categories]

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.list_accounts import (
     AccountSummary,
@@ -24,6 +24,7 @@ class ListAccountsInteractor(ListAccountsInputPort):
     uow: UnitOfWork
     presenter: ListAccountsOutputPort
 
+    @override
     async def execute(self, data: ListAccountsInput) -> None:
         owner = OwnerId(data.owner_id)
         async with self.uow:

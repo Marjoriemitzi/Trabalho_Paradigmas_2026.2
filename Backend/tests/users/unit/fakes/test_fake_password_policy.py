@@ -1,8 +1,12 @@
+from typing import TYPE_CHECKING
+
 import pytest
 
 from app.users.domain.exceptions import WeakPasswordError
-from app.users.domain.services.password_policy import PasswordPolicy
 from tests.users.fakes.fake_password_policy import FakePasswordPolicy
+
+if TYPE_CHECKING:
+    from app.users.domain.services.password_policy import PasswordPolicy
 
 
 def test_aceita_qualquer_senha_por_padrao() -> None:

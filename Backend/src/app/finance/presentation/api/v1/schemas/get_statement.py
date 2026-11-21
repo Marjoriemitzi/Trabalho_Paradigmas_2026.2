@@ -7,16 +7,18 @@ from app.finance.application.dtos.get_statement import (
     StatementOutput,
     StatementTransfer,
 )
+from app.shared.presentation.api.schema_types import IsoDateStr, UuidStr
 
 
 class StatementEntryResponse(BaseModel):
-    id: str
-    account_id: str
+    id: UuidStr
+    account_id: UuidStr
     kind: str
     amount_cents: int
     description: str
     category: str
-    occurred_on: str
+    occurred_on: IsoDateStr
+    recurrence_id: UuidStr | None
 
     @classmethod
     def from_entry(cls, entry: StatementEntry) -> Self:
@@ -28,16 +30,17 @@ class StatementEntryResponse(BaseModel):
             description=entry.description,
             category=entry.category,
             occurred_on=entry.occurred_on,
+            recurrence_id=entry.recurrence_id,
         )
 
 
 class StatementTransferResponse(BaseModel):
-    id: str
-    from_account_id: str
-    to_account_id: str
+    id: UuidStr
+    from_account_id: UuidStr
+    to_account_id: UuidStr
     amount_cents: int
     description: str
-    occurred_on: str
+    occurred_on: IsoDateStr
 
     @classmethod
     def from_transfer(cls, transfer: StatementTransfer) -> Self:
@@ -52,9 +55,9 @@ class StatementTransferResponse(BaseModel):
 
 
 class StatementResponse(BaseModel):
-    start: str = Field(serialization_alias="from")
-    end: str = Field(serialization_alias="to")
-    account_id: str | None = Field(
+    start: IsoDateStr = Field(serialization_alias="from")
+    end: IsoDateStr = Field(serialization_alias="to")
+    account_id: UuidStr | None = Field(
         description="A conta do extrato; null quando junta todas as contas"
     )
     opening_balance_cents: int

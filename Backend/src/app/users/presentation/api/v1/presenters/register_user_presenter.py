@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -16,19 +19,31 @@ class RegisterUserHttpPresenter(RegisterUserOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_registered(self, user: RegisteredUser) -> None:
         corpo = RegisteredUserResponse.from_output(user).model_dump()
         self._response = JSONResponse(corpo, status_code=status.HTTP_201_CREATED)
 
-    def present_email_taken(self, email: str) -> None:
+    @override
+    def present_email_taken(self, _email: str) -> None:
         self._response = error_response(status.HTTP_409_CONFLICT, "email_taken")
 
-    def present_weak_password(self, reasons: list[str]) -> None:
+    @override
+    def present_weak_password(self, reasons: Sequence[str]) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "weak_password", reasons=reasons
         )
 
-    def present_invalid_email(self, email: str) -> None:
+    @override
+    def present_invalid_email(self, _email: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_email"
+        )
+
+    @override
+    def present_too_many_attempts(self, retry_after: int) -> None:
+        self._response = error_response(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "too_many_attempts",
+            headers={"Retry-After": str(retry_after)},
         )

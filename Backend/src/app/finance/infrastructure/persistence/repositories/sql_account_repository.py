@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.finance.domain.entities.account import Account
-from app.finance.domain.exceptions import AccountNameTakenError
+from app.finance.domain.exceptions import AccountInUseError, AccountNameTakenError
 from app.finance.domain.value_objects.account_id import AccountId
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.infrastructure.persistence.mappers.account_mapper import (
@@ -43,3 +43,30 @@ class SqlAccountRepository:
         )
         modelo = await self._session.scalar(consulta)
         return None if modelo is None else to_entity(modelo)
+
+    async def update(self, account: Account) -> None:
+        modelo = await self._session.get(AccountModel, account.id.value)
+        if modelo is None:
+            return
+        modelo.name = account.name.text
+        try:
+            await self._session.flush()
+        except IntegrityError as error:
+            if f'"{NOME_UNICO}"' in str(error.orig):
+                raise AccountNameTakenError(account.name.text) from error
+            raise
+
+    async def remove(self, account: Account) -> None:
+        modelo = await self._session.get(AccountModel, account.id.value)
+        if modelo is None:
+            return
+        await self._session.delete(modelo)
+        try:
+            await self._session.flush()
+        except IntegrityError as error:
+            mensagem = str(error.orig)
+            if "violates foreign key constraint" in mensagem and (
+                'on table "accounts"' in mensagem
+            ):
+                raise AccountInUseError from error
+            raise

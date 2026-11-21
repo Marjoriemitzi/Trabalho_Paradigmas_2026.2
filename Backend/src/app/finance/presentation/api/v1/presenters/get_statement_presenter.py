@@ -1,3 +1,5 @@
+from typing import override
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 
@@ -16,6 +18,7 @@ class GetStatementHttpPresenter(GetStatementOutputPort):
             raise RuntimeError("O caso de uso terminou sem apresentar um resultado.")
         return self._response
 
+    @override
     def present_statement(self, statement: StatementOutput) -> None:
         corpo = StatementResponse.from_output(statement).model_dump(by_alias=True)
         self._response = JSONResponse(
@@ -24,6 +27,7 @@ class GetStatementHttpPresenter(GetStatementOutputPort):
             headers={"Cache-Control": "no-store"},
         )
 
+    @override
     def present_invalid(self, field: str, problem: str) -> None:
         self._response = error_response(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -31,5 +35,6 @@ class GetStatementHttpPresenter(GetStatementOutputPort):
             fields=[{"field": field, "problem": problem}],
         )
 
+    @override
     def present_account_not_found(self) -> None:
         self._response = error_response(status.HTTP_404_NOT_FOUND, "account_not_found")

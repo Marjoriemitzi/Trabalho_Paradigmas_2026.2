@@ -8,6 +8,8 @@ from app.finance.application.dtos.create_account import (
     CreateAccountInput,
 )
 from app.finance.application.dtos.list_accounts import AccountSummary
+from app.finance.application.dtos.rename_account import RenameAccountInput
+from app.shared.presentation.api.schema_types import UuidStr
 
 
 class CreateAccountRequest(BaseModel):
@@ -21,7 +23,7 @@ class CreateAccountRequest(BaseModel):
 
 
 class AccountResponse(BaseModel):
-    id: str
+    id: UuidStr
     name: str
     kind: str
 
@@ -31,7 +33,7 @@ class AccountResponse(BaseModel):
 
 
 class AccountSummaryResponse(BaseModel):
-    id: str
+    id: UuidStr
     name: str
     kind: str
     balance_cents: int
@@ -48,3 +50,16 @@ class AccountSummaryResponse(BaseModel):
 
 class AccountListResponse(BaseModel):
     accounts: list[AccountSummaryResponse]
+
+
+class RenameAccountRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+
+    def to_input(
+        self, owner_id: uuid.UUID, account_id: uuid.UUID
+    ) -> RenameAccountInput:
+        return RenameAccountInput(
+            owner_id=owner_id, account_id=account_id, name=self.name
+        )

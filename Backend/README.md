@@ -2,6 +2,9 @@
 
 Backend em FastAPI + Prolog, Clean Architecture + DDD.
 
+**Vai criar uma feature?** Leia o [CONTRIBUTING.md](CONTRIBUTING.md): a ordem de trabalho, onde
+registrar cada peça e as regras que um PR precisa respeitar.
+
 Todo o backend roda dentro do Docker: a API, o banco, os testes, o lint e as migrations.
 Nenhuma dependência Python do projeto é instalada fora dos containers.
 
@@ -30,6 +33,98 @@ Na primeira subida, o banco cria sozinho o usuário da aplicação (`Backend/db/
 A API fica em http://127.0.0.1:8000. A documentação fica em `/docs` quando `ENABLE_DOCS=true`
 no `.env`.
 
+## CORS
+
+`CORS_ORIGINS` (no `.env`) lista as origens do frontend, separadas por vírgula, com esquema e sem
+barra no fim (`http://localhost:8001,http://127.0.0.1:8001`). Vazio, o CORS fica desligado.
+`*` é recusado.
+
+O token vai no cabeçalho `Authorization`, então `allow_credentials` fica `False`. Limitação: respostas
+`500` geradas pelo `ServerErrorMiddleware` do Starlette ficam fora do `CORSMiddleware` e não levam os
+cabeçalhos de CORS; o navegador mostra isso como erro de CORS, mas a causa é o erro `500`.
+
+## Sessão (access e refresh token)
+
+`POST /api/v1/auth/login` devolve um access token curto (`JWT_EXPIRES_MINUTES`, padrão 15) e um
+refresh token opaco (`REFRESH_TOKEN_DAYS`, padrão 30). O banco guarda só o hash SHA-256 do refresh
+token.
+
+- `POST /api/v1/auth/refresh` troca o refresh token por um par novo (rotação). Apresentar um
+  refresh token já usado revoga a sessão inteira e responde `401 invalid_refresh_token`.
+- `POST /api/v1/auth/logout` revoga a sessão do refresh token enviado e é idempotente (`204`).
+- O access token já emitido vale até vencer (no máximo `JWT_EXPIRES_MINUTES`), a menos que o logout
+  venha com `Authorization: Bearer <access token>`: aí o `jti` dele entra na lista de bloqueio
+  (`revoked_tokens`) e `require_authenticated_user` o recusa em todas as rotas. Todo access token
+  leva `jti`; tokens sem ele são recusados.
+
+## Limite de tentativas
+
+`POST /api/v1/auth/login` e `POST /api/v1/users` respondem `429 too_many_attempts` com o cabeçalho
+`Retry-After` (segundos) quando passam do limite, numa janela fixa:
+
+| Regra | Padrão | Variável (`Settings`) |
+| --- | --- | --- |
+| falhas de login por (IP, e-mail) | 5 em 15 min | `LOGIN_PAIR_MAX_FAILURES`, `LOGIN_WINDOW_MINUTES` |
+| falhas de login por IP | 50 em 15 min | `LOGIN_IP_MAX_FAILURES` |
+| cadastros por IP | 5 em 60 min | `REGISTER_IP_MAX`, `REGISTER_WINDOW_MINUTES` |
+
+Um login certo zera a contagem do par. As contagens ficam na tabela `auth_attempts` (só o hash da
+chave). O IP é sempre `request.client.host`: atrás de proxy, o uvicorn só o troca pelo de
+`X-Forwarded-For` se o proxy estiver em `FORWARDED_ALLOW_IPS` (vazio no compose = nenhum). A
+aplicação nunca lê o cabeçalho direto.
+
+## Códigos da API
+
+Todos os códigos de erro e de aviso estão em [docs/api-codes.md](docs/api-codes.md). Um código
+novo entra no catálogo no mesmo PR; o teste `tests/test_api_codes.py` falha se faltar.
+
+## Contrato OpenAPI
+
+O contrato fica versionado em `openapi/openapi.json`, para o frontend usar mesmo com `ENABLE_DOCS=false`.
+Mudou rota, schema ou descrição? Regenere o arquivo no mesmo PR:
+
+```bash
+docker compose run --rm --no-deps tools task openapi
+```
+
+O teste `tests/test_openapi.py` falha se o arquivo estiver desatualizado.
+
+## Dados de demonstração
+
+Cria um usuário com 3 contas, 3 meses de lançamentos, transferências e recorrências, passando
+pelos casos de uso (categorizador, saldos e regras de verdade):
+
+```bash
+docker compose exec app python -m app.seed_demo               # demo@acme.com
+docker compose exec app python -m app.seed_demo --email ana@acme.com
+docker compose exec app python -m app.seed_demo --reset       # apaga e recria
+```
+
+A senha vem de `DEMO_PASSWORD`; sem ela, o comando gera uma senha forte e a imprime uma única vez.
+O comando **só roda com `APP_ENV=development`** (o padrão da aplicação é `production`, então ele
+recusa quando ninguém configurou nada). Os dados são relativos a "hoje" e determinísticos.
+
+## Recorrências: lançamento automático
+
+O cadastro (`/api/v1/recurrences`) só guarda a regra. Quem lança as transações é o comando
+
+```bash
+docker compose exec app python -m app.run_due_recurrences             # uma vez
+docker compose exec app python -m app.run_due_recurrences --today 2026-12-20   # recuperação manual
+```
+
+Ele lança, pelo mesmo fluxo do lançamento feito à mão (categorizador e `checks`), todas as
+ocorrências pendentes até hoje, e é **idempotente**: rodar duas vezes, ou ficar dias sem rodar,
+não duplica nem perde nada (`last_run_on` mais o índice único `(recurrence_id, occurred_on)`).
+Ocorrências com mais de 62 dias são puladas e registradas no log. Sai com código 1 se alguma
+recorrência falhou; a falha de uma não impede as outras.
+
+**Quem chama todo dia:** o serviço `scheduler` do `docker-compose.yml` (mesma imagem do `app`,
+somente leitura, sem capabilities e sem portas) roda `--every 3600`, ou seja, de hora em hora.
+Como o comando é idempotente, as execuções extras não fazem nada, e o serviço continua correto
+se reiniciar. Para ver: `docker compose logs -f scheduler`. Em desenvolvimento o fuso vem de
+`TIMEZONE` (padrão `America/Sao_Paulo`).
+
 ## Dia a dia
 
 ```bash
@@ -46,14 +141,41 @@ O serviço `app` (a API) é só leitura. Comandos que precisam gravar arquivos d
 serviço `tools`: mesma imagem, sem portas, e só sobe quando chamado com `docker compose run`.
 
 ```bash
-docker compose exec app task check         # tudo: lint + tipos + testes + auditoria
+docker compose exec app task check         # tudo: lint + tipos + testes + cobertura + auditoria
 docker compose exec app task lint          # ruff check
 docker compose exec app task typecheck     # mypy
-docker compose exec app task test          # pytest
+docker compose exec app task test:fast     # TDD rápido (sem PostgreSQL nem cobertura)
+docker compose exec app task test:int      # integração (Postgres/Prolog/Argon2) e E2E reais
+docker compose exec app task test          # suíte completa com cobertura de branches (>= 95%)
 docker compose exec app task audit         # vulnerabilidades nas dependências
 
 docker compose run --rm --no-deps tools ruff format .     # formatar o código
+docker compose run --rm --no-deps tools task mutate       # mutation testing no domínio (mutmut)
 ```
+
+**Quando usar cada comando de teste:**
+
+- `task test:fast` (`pytest -m "not integration and not real" --no-cov`): feedback rápido no ciclo
+  TDD — roda testes unitários, contratos em memória (`test_fake_*.py`), E2E com dublês
+  (`*_endpoint.py`, `test_health.py`, `test_cors.py`) e guardas estáticos, sem acionar o PostgreSQL.
+- `task test:int` (`pytest -m "integration or real" --no-cov`): valida apenas os testes com
+  infraestrutura real (PostgreSQL, SWI-Prolog, Argon2 e rotas `*_real.py`), útil ao mexer em
+  repositórios SQL, migrations ou regras `.pl`.
+- `task test` / `task check`: roda 100% da suíte com cobertura de linhas e branches
+  (`--cov-branch --cov-fail-under=95`) e `--strict-markers`. Rode `task check` antes de abrir um PR.
+
+Os marcadores (`unit`, `contract`, `integration`, `e2e`, `real`, `property`) são aplicados
+automaticamente pelo caminho do arquivo em `tests/conftest.py`; use `@pytest.mark.property`
+explicitamente apenas em testes baseados em propriedades.
+
+O `task mutate` executa via serviço `tools` (em workspace temporário sob `/tmp/mutmut-work`) porque `app` roda com `read_only: true` e `./Backend/src` montado como somente leitura (`:ro`). A configuração `[tool.mutmut]` no `pyproject.toml` restringe as mutações à camada pura de domínio (`src/app/finance/domain` e `src/app/users/domain`) contra apenas os testes unitários de domínio (com `--no-cov`, sem PostgreSQL nem Prolog), e fica fora do `task check` e do CI em push/PR. Para inspecionar o diff de um mutante sobrevivente:
+
+```bash
+docker compose run --rm --no-deps tools bash -c "task mutate && cd /tmp/mutmut-work && mutmut show <mutante>"
+```
+
+O CI do GitHub Actions (veja o [README da raiz](../README.md#ci)) roda os comandos principais desta
+seção, mais `alembic check` e o ciclo `downgrade base` / `upgrade head`.
 
 ## Migrations
 
@@ -67,8 +189,9 @@ docker compose exec app alembic history
 
 `migrations/env.py` lê a `DATABASE_URL` do ambiente. Nunca coloque senha no `alembic.ini`.
 
-O `--autogenerate` só funciona depois que `target_metadata` em `migrations/env.py` apontar para o
-`MetaData` dos modelos do SQLAlchemy. Até lá, use `alembic revision -m "descrição"` sem ele.
+O `--autogenerate` compara o banco com o `Base.metadata` (`target_metadata` em `migrations/env.py`).
+Ele só enxerga um model que tenha sido importado ali: ao criar um model novo, acrescente o import em
+`migrations/env.py`. Revise sempre o arquivo gerado (veja o [CONTRIBUTING](CONTRIBUTING.md)).
 
 ## Dependências
 

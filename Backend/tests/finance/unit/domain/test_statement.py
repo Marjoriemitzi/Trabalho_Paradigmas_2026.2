@@ -39,11 +39,16 @@ DESPESA = TransactionKind.EXPENSE
 
 def test_totais_separam_o_que_entrou_do_que_saiu() -> None:
     totais = Totals.of(
-        [lancar(RECEITA, 500000), lancar(DESPESA, 4590), lancar(DESPESA, 15000)]
+        [
+            lancar(RECEITA, 500000),
+            lancar(RECEITA, 25000),
+            lancar(DESPESA, 4590),
+            lancar(DESPESA, 15000),
+        ]
     )
 
-    assert totais == Totals(income_cents=500000, expense_cents=19590)
-    assert totais.balance_cents == 480410
+    assert totais == Totals(income_cents=525000, expense_cents=19590)
+    assert totais.balance_cents == 505410
 
 
 def test_saldo_negativo_quando_saiu_mais_do_que_entrou() -> None:

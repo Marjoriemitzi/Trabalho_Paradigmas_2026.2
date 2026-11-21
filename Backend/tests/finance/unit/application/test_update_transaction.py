@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import date
 
@@ -124,20 +125,24 @@ async def test_transacao_que_nao_e_de_quem_pediu_nao_e_corrigida(de_quem: str) -
 
 
 @pytest.mark.parametrize(
-    ("mudanca", "esperado"),
+    ("mudar", "esperado"),
     [
-        ({"amount_cents": 0}, ("amount_cents", "not_positive")),
-        ({"account_id": AccountId.new().value}, ("account_id", "not_found")),
-        ({"category": "salario"}, ("category", "not_found")),
+        (lambda c: replace(c, amount_cents=0), ("amount_cents", "not_positive")),
+        (
+            lambda c: replace(c, account_id=AccountId.new().value),
+            ("account_id", "not_found"),
+        ),
+        (lambda c: replace(c, category="salario"), ("category", "not_found")),
     ],
 )
 async def test_correcao_recusada_nao_muda_nada(
-    mudanca: dict[str, object], esperado: tuple[str, str]
+    mudar: Callable[[UpdateTransactionInput], UpdateTransactionInput],
+    esperado: tuple[str, str],
 ) -> None:
     original = padaria()
     interactor, uow, _, presenter = await montar(original)
 
-    await interactor.execute(replace(correcao(original), **mudanca))  # type: ignore[arg-type]
+    await interactor.execute(mudar(correcao(original)))
 
     assert presenter.invalid == esperado
     assert uow.committed is False

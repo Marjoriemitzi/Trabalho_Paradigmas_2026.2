@@ -1,9 +1,13 @@
 from types import TracebackType
 from typing import Protocol, Self
 
+from app.finance.application.ports.account_usage import AccountUsage
 from app.finance.application.ports.spending_reader import SpendingReader
 from app.finance.domain.repositories.account_repository import AccountRepository
 from app.finance.domain.repositories.category_catalog import CategoryCatalog
+from app.finance.domain.repositories.recurrence_repository import (
+    RecurrenceRepository,
+)
 from app.finance.domain.repositories.transaction_repository import (
     TransactionRepository,
 )
@@ -15,7 +19,13 @@ class UnitOfWork(Protocol):
     def accounts(self) -> AccountRepository: ...
 
     @property
+    def account_usage(self) -> AccountUsage: ...
+
+    @property
     def categories(self) -> CategoryCatalog: ...
+
+    @property
+    def recurrences(self) -> RecurrenceRepository: ...
 
     @property
     def spending(self) -> SpendingReader: ...

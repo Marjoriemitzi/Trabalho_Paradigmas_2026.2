@@ -7,6 +7,7 @@ from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
 from app.finance.domain.value_objects.money import Money
 from app.finance.domain.value_objects.owner_id import OwnerId
+from app.finance.domain.value_objects.recurrence_id import RecurrenceId
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 
 DONO = OwnerId(uuid.uuid4())
@@ -42,7 +43,8 @@ def test_cada_lancamento_tem_identidade_propria() -> None:
 
     assert primeira.id != segunda.id
     assert primeira != segunda
-    assert primeira == primeira
+    mesma = primeira
+    assert primeira == mesma
     assert len({primeira, segunda, primeira}) == 2
 
 
@@ -68,3 +70,19 @@ def test_corrigir_muda_os_dados_mas_nao_a_identidade_nem_o_dono() -> None:
     assert transacao.description == Description("Reembolso")
     assert transacao.category == Category("salario")
     assert transacao.occurred_on == date(2026, 11, 9)
+
+
+def test_lancar_com_recorrencia_guarda_o_id_da_recorrencia() -> None:
+    recorrencia_id = RecurrenceId.new()
+    transacao = Transaction.record(
+        owner=DONO,
+        account=CONTA,
+        kind=TransactionKind.EXPENSE,
+        amount=Money(1250),
+        description=Description("Assinatura"),
+        category=Category("outros"),
+        occurred_on=date(2026, 11, 10),
+        recurrence=recorrencia_id,
+    )
+
+    assert transacao.recurrence == recorrencia_id

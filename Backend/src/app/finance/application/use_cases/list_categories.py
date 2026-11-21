@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, override
 
 from app.finance.application.dtos.list_categories import CategoryOutput
 from app.finance.application.ports.unit_of_work import UnitOfWork
@@ -18,6 +18,7 @@ class ListCategoriesInteractor(ListCategoriesInputPort):
     uow: UnitOfWork
     presenter: ListCategoriesOutputPort
 
+    @override
     async def execute(self) -> None:
         async with self.uow:
             categorias = await self.uow.categories.list_all()
