@@ -36,7 +36,9 @@ Os exemplos usam fatias que já existem. Abra-as ao lado deste guia:
 8. **Teste real**: `tests/<contexto>/e2e/*_real.py`, com o PostgreSQL de verdade (item 8).
 
 Além deles, cada rota tem um teste com fakes (`*_endpoint.py`) e cada presenter tem um teste de
-unidade.
+unidade. Durante o ciclo TDD nos passos 1–7, use `docker compose exec app task test:fast` para
+feedback rápido sem subir o PostgreSQL; ao validar SQL, Prolog ou `*_real.py`, rode
+`docker compose exec app task test:int`.
 
 ## 2. Onde registrar uma feature nova
 
@@ -136,7 +138,7 @@ O projeto roda `mypy --strict` (com `explicit-override`, `truthy-bool` e outros 
 
 ```bash
 git fetch && git merge origin/main               # atualize a branch
-docker compose exec app task check               # ruff, mypy, pytest e pip-audit
+docker compose exec app task check               # ruff, mypy, pytest (cobertura de branches >= 95%) e pip-audit
 docker compose exec app alembic check            # sem diferença de schema
 docker compose run --rm --no-deps tools ruff format .
 docker compose run --rm --no-deps tools task openapi   # mudou rota ou schema? regenere
