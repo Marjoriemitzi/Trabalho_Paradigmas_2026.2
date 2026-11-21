@@ -30,6 +30,7 @@ mypy = "^1.13"
 ruff = "^0.7"
 taskipy = "^1.14"
 pip-audit = "^2.10"
+hypothesis = "^6.170.17"
 
 [build-system]
 requires = ["poetry-core"]
@@ -100,6 +101,9 @@ filterwarnings = [
     "error::pytest.PytestUnraisableExceptionWarning",
 ]
 addopts = "--strict-markers --cov=app --cov-report=term-missing"
+markers = [
+    "property: Testes baseados em propriedades (Hypothesis)",
+]
 
 [tool.taskipy.tasks]
 run = "uvicorn app.main:app --reload"
