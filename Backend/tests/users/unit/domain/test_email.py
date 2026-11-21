@@ -17,8 +17,10 @@ def test_normaliza_para_minusculas_sem_espacos() -> None:
     ["", "ana.acme.com", "ana@", "@acme.com", "ana@acme", "ana acme@x.com"],
 )
 def test_recusa_email_invalido(invalido: str) -> None:
-    with pytest.raises(InvalidEmailError):
+    with pytest.raises(InvalidEmailError) as erro:
         Email(invalido)
+    assert erro.value.value == invalido
+    assert repr(invalido) in str(erro.value)
 
 
 def test_dois_emails_com_mesmo_valor_sao_iguais() -> None:

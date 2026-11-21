@@ -29,8 +29,12 @@ def transferir(de: AccountId, para: AccountId, cents: int) -> Transfer:
 def test_transferencia_guarda_de_onde_e_para_onde() -> None:
     fatura = transferir(CORRENTE, CARTAO, 150000)
 
+    assert fatura.owner == DONO
     assert fatura.source == CORRENTE
     assert fatura.destination == CARTAO
+    assert fatura.amount == Money(150000)
+    assert fatura.description == Description("Pagamento da fatura")
+    assert fatura.occurred_on == date(2026, 11, 10)
     assert fatura.touches(CORRENTE)
     assert fatura.touches(CARTAO)
     assert not fatura.touches(CARTEIRA)
@@ -57,13 +61,14 @@ def test_fluxos_separam_o_que_entrou_do_que_saiu_da_conta() -> None:
         transferir(CORRENTE, CARTAO, 150000),
         transferir(CORRENTE, CARTEIRA, 20000),
         transferir(CARTEIRA, CORRENTE, 5000),
+        transferir(CARTAO, CORRENTE, 3000),
         transferir(CARTAO, CARTEIRA, 1),
     ]
 
     fluxos = TransferFlows.of(transferencias, CORRENTE)
 
-    assert fluxos == TransferFlows(incoming_cents=5000, outgoing_cents=170000)
-    assert fluxos.net_cents == -165000
+    assert fluxos == TransferFlows(incoming_cents=8000, outgoing_cents=170000)
+    assert fluxos.net_cents == -162000
 
 
 def test_revise_troca_todos_os_campos_e_mantem_a_identidade() -> None:

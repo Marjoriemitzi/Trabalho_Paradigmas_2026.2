@@ -150,6 +150,7 @@ docker compose exec app task test          # suíte completa com cobertura de br
 docker compose exec app task audit         # vulnerabilidades nas dependências
 
 docker compose run --rm --no-deps tools ruff format .     # formatar o código
+docker compose run --rm --no-deps tools task mutate       # mutation testing no domínio (mutmut)
 ```
 
 **Quando usar cada comando de teste:**
@@ -167,7 +168,13 @@ Os marcadores (`unit`, `contract`, `integration`, `e2e`, `real`, `property`) sã
 automaticamente pelo caminho do arquivo em `tests/conftest.py`; use `@pytest.mark.property`
 explicitamente apenas em testes baseados em propriedades.
 
-O CI do GitHub Actions (veja o [README da raiz](../README.md#ci)) roda os mesmos comandos desta
+O `task mutate` executa via serviço `tools` (em workspace temporário sob `/tmp/mutmut-work`) porque `app` roda com `read_only: true` e `./Backend/src` montado como somente leitura (`:ro`). A configuração `[tool.mutmut]` no `pyproject.toml` restringe as mutações à camada pura de domínio (`src/app/finance/domain` e `src/app/users/domain`) contra apenas os testes unitários de domínio (com `--no-cov`, sem PostgreSQL nem Prolog), e fica fora do `task check` e do CI em push/PR. Para inspecionar o diff de um mutante sobrevivente:
+
+```bash
+docker compose run --rm --no-deps tools bash -c "task mutate && cd /tmp/mutmut-work && mutmut show <mutante>"
+```
+
+O CI do GitHub Actions (veja o [README da raiz](../README.md#ci)) roda os comandos principais desta
 seção, mais `alembic check` e o ciclo `downgrade base` / `upgrade head`.
 
 ## Migrations
