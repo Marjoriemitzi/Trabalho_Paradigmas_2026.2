@@ -75,6 +75,17 @@ aplicação nunca lê o cabeçalho direto.
 Todos os códigos de erro e de aviso estão em [docs/api-codes.md](docs/api-codes.md). Um código
 novo entra no catálogo no mesmo PR; o teste `tests/test_api_codes.py` falha se faltar.
 
+## Contrato OpenAPI
+
+O contrato fica versionado em `openapi/openapi.json`, para o frontend usar mesmo com `ENABLE_DOCS=false`.
+Mudou rota, schema ou descrição? Regenere o arquivo no mesmo PR:
+
+```bash
+docker compose run --rm --no-deps tools task openapi
+```
+
+O teste `tests/test_openapi.py` falha se o arquivo estiver desatualizado.
+
 ## Dia a dia
 
 ```bash
