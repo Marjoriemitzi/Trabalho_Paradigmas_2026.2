@@ -86,6 +86,21 @@ docker compose run --rm --no-deps tools task openapi
 
 O teste `tests/test_openapi.py` falha se o arquivo estiver desatualizado.
 
+## Dados de demonstração
+
+Cria um usuário com 3 contas, 3 meses de lançamentos, transferências e recorrências, passando
+pelos casos de uso (categorizador, saldos e regras de verdade):
+
+```bash
+docker compose exec app python -m app.seed_demo               # demo@acme.com
+docker compose exec app python -m app.seed_demo --email ana@acme.com
+docker compose exec app python -m app.seed_demo --reset       # apaga e recria
+```
+
+A senha vem de `DEMO_PASSWORD`; sem ela, o comando gera uma senha forte e a imprime uma única vez.
+O comando **só roda com `APP_ENV=development`** (o padrão da aplicação é `production`, então ele
+recusa quando ninguém configurou nada). Os dados são relativos a "hoje" e determinísticos.
+
 ## Dia a dia
 
 ```bash

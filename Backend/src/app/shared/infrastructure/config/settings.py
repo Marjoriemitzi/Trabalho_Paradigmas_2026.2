@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, SecretStr, field_validator
@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     login_window_minutes: int = Field(default=15, gt=0)
     register_ip_max: int = Field(default=5, gt=0)
     register_window_minutes: int = Field(default=60, gt=0)
+    app_env: Literal["development", "test", "production"] = "production"
     timezone: str = "America/Sao_Paulo"
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
