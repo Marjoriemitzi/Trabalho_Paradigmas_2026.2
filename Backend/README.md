@@ -70,6 +70,11 @@ chave). O IP é sempre `request.client.host`: atrás de proxy, o uvicorn só o t
 `X-Forwarded-For` se o proxy estiver em `FORWARDED_ALLOW_IPS` (vazio no compose = nenhum). A
 aplicação nunca lê o cabeçalho direto.
 
+## Códigos da API
+
+Todos os códigos de erro e de aviso estão em [docs/api-codes.md](docs/api-codes.md). Um código
+novo entra no catálogo no mesmo PR; o teste `tests/test_api_codes.py` falha se faltar.
+
 ## Dia a dia
 
 ```bash

@@ -38,6 +38,7 @@ services:
       - ./Backend/tests:/app/tests:ro
       - ./Backend/rules:/app/rules:ro
       - ./Backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./Backend/docs:/app/docs:ro
       - ./Backend/migrations:/app/migrations:ro
       - ./Backend/alembic.ini:/app/alembic.ini:ro
     ports:
@@ -62,6 +63,7 @@ services:
       - ./Backend/tests:/app/tests
       - ./Backend/migrations:/app/migrations
       - ./Backend/pyproject.toml:/app/pyproject.toml
+      - ./Backend/docs:/app/docs
       - ./Backend/poetry.lock:/app/poetry.lock
       - ./Backend/rules:/app/rules:ro
       - ./Backend/alembic.ini:/app/alembic.ini:ro
