@@ -43,6 +43,11 @@ async function mockApi(page, options = {}) {
       authorization: request.headers().authorization
     };
 
+    if (call.method === "GET" && call.path === "/api/v1/accounts") {
+      await route.fulfill({ json: { accounts: [] } });
+      return;
+    }
+
     calls.push(call);
 
     let status;
