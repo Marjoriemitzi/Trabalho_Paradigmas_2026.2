@@ -2,7 +2,8 @@
 
 Interface em Elm com login, cadastro, consulta do usuário, renovação
 de sessão, logout com revogação no backend e gerenciamento de
-contas financeiras.
+contas financeiras, extrato por período e lançamentos de receitas e
+despesas.
 
 ## Requisitos
 
@@ -55,7 +56,7 @@ necessários. Na primeira execução, o download da imagem pode demorar.
 
 Os testes cobrem login, cadastro, consulta do usuário, restauração e
 renovação da sessão, logout, limite de tentativas e gerenciamento
-de contas financeiras. O backend e o banco podem ficar desligados
+de contas e lançamentos. O backend e o banco podem ficar desligados
 durante os testes com a API simulada.
 
 ## Formatar e verificar a compilação
@@ -74,6 +75,10 @@ o caminho relativo a `/api/v1` e o corpo JSON. As telas que precisam
 da lista de contas podem reutilizar `Accounts.listRequest` e
 `Accounts.listDecoder`. Use um identificador próprio por tela, por
 exemplo, `Api.request (Accounts.listRequest "transfers.accounts")`.
+O catálogo de categorias usa `Categories.listRequest` e
+`Categories.listDecoder`. Cada categoria traz tipo, código (`name`)
+e rótulo (`label`). Envie o código no campo `category` quando a
+categoria for escolhida manualmente.
 
 O `Main.elm` já assina `Api.responses`. Encaminhe a resposta à tela
 pelo `id` e decodifique `response.body` conforme o endpoint. O corpo

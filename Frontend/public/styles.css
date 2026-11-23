@@ -132,3 +132,49 @@ button:focus-visible {
   outline: 2px solid #528d70;
   outline-offset: 2px;
 }
+
+.statement {
+  margin-top: 24px;
+  border-top: 1px solid #ccd5cf;
+}
+
+.statement-filters,
+.statement-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
+  gap: 12px;
+}
+
+.statement input[type="date"] {
+  min-width: 0;
+}
+
+.statement select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd5cf;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.statement select:focus-visible {
+  outline: 2px solid #528d70;
+  outline-offset: 2px;
+}
+
+.statement-totals > div {
+  background: #f4f6f5;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.statement-totals dd {
+  margin: 6px 0 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.statement-row h4 {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}

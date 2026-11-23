@@ -8,6 +8,7 @@ import Html.Attributes exposing (attribute, class, disabled, for, id, minlength,
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Statement
 
 
 type alias User =
@@ -26,6 +27,7 @@ type alias Model =
     , notice : String
     , user : Maybe User
     , accounts : Maybe Accounts.Model
+    , statement : Statement.Model
     }
 
 
@@ -37,6 +39,7 @@ type Msg
     | Submit
     | ReceiveResponse Api.Response
     | AccountsMsg Accounts.Msg
+    | StatementMsg Statement.Msg
     | Logout
 
 
@@ -51,6 +54,7 @@ initialModel =
     , notice = ""
     , user = Nothing
     , accounts = Nothing
+    , statement = Statement.init
     }
 
 
@@ -121,6 +125,17 @@ update msg model =
         AccountsMsg accountsMsg ->
             updateAccounts (Accounts.update accountsMsg) model
 
+        StatementMsg statementMsg ->
+            if model.user == Nothing then
+                ( model, Cmd.none )
+
+            else
+                let
+                    ( statement, command ) =
+                        Statement.update statementMsg model.statement
+                in
+                ( { model | statement = statement }, Cmd.map StatementMsg command )
+
         Logout ->
             ( initialModel, Api.logout )
 
@@ -176,7 +191,26 @@ receiveResponse response model =
             ( profileError model response, Cmd.none )
 
         _ ->
-            updateAccounts (Accounts.receive response) model
+            if String.startsWith "statement." response.id && model.user /= Nothing then
+                let
+                    ( statement, command, accountsChanged ) =
+                        Statement.receive response model.statement
+
+                    next =
+                        { model | statement = statement }
+                in
+                if accountsChanged then
+                    let
+                        ( refreshed, accountsCommand ) =
+                            updateAccounts Accounts.reload next
+                    in
+                    ( refreshed, Cmd.batch [ Cmd.map StatementMsg command, accountsCommand ] )
+
+                else
+                    ( next, Cmd.map StatementMsg command )
+
+            else
+                updateAccounts (Accounts.receive response) model
 
 
 updateAccounts : (Accounts.Model -> ( Accounts.Model, Cmd Accounts.Msg )) -> Model -> ( Model, Cmd Msg )
@@ -273,7 +307,10 @@ view model =
                     ]
                 , case model.accounts of
                     Just accounts ->
-                        Html.map AccountsMsg (Accounts.view accounts)
+                        div []
+                            [ Html.map AccountsMsg (Accounts.view accounts)
+                            , Html.map StatementMsg (Statement.view (Accounts.items accounts) model.statement)
+                            ]
 
                     Nothing ->
                         text ""

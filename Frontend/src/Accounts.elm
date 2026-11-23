@@ -1,4 +1,4 @@
-module Accounts exposing (Account, Kind(..), Model, Msg, init, kindLabel, listDecoder, listRequest, receive, update, view)
+module Accounts exposing (Account, Kind(..), Model, Msg, init, items, kindLabel, listDecoder, listRequest, receive, reload, update, view)
 
 import Api
 import Html exposing (Html, article, button, div, form, h2, h3, input, label, li, option, p, section, select, span, text, ul)
@@ -6,6 +6,7 @@ import Html.Attributes exposing (attribute, class, disabled, for, id, required, 
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Money
 
 
 type Kind
@@ -23,7 +24,7 @@ type alias Account =
 
 
 type Listing
-    = Loading
+    = Loading (List Account)
     | LoadFailed String
     | Loaded (List Account)
 
@@ -39,6 +40,7 @@ type alias Model =
     { listing : Listing
     , editor : Editor
     , saving : Bool
+    , reloadPending : Bool
     , error : String
     , notice : String
     }
@@ -58,9 +60,10 @@ type Msg
 init : ( Model, Cmd Msg )
 init =
     load
-        { listing = Loading
+        { listing = Loading []
         , editor = Browsing
         , saving = False
+        , reloadPending = False
         , error = ""
         , notice = ""
         }
@@ -138,9 +141,36 @@ kindLabel kind =
             "Cartão de crédito"
 
 
+items : Model -> List Account
+items model =
+    case model.listing of
+        Loaded accounts ->
+            accounts
+
+        Loading accounts ->
+            accounts
+
+        LoadFailed _ ->
+            []
+
+
+reload : Model -> ( Model, Cmd Msg )
+reload model =
+    case model.listing of
+        Loading _ ->
+            ( { model | reloadPending = True }, Cmd.none )
+
+        _ ->
+            if model.saving then
+                ( { model | reloadPending = True }, Cmd.none )
+
+            else
+                load model
+
+
 load : Model -> ( Model, Cmd Msg )
 load model =
-    ( { model | listing = Loading, error = "" }
+    ( { model | listing = Loading (items model), reloadPending = False }
     , Api.request (listRequest "accounts.list")
     )
 
@@ -236,7 +266,7 @@ save model =
 receive : Api.Response -> Model -> ( Model, Cmd Msg )
 receive response model =
     case ( response.id, model.listing ) of
-        ( "accounts.list", Loading ) ->
+        ( "accounts.list", Loading _ ) ->
             let
                 listing =
                     if response.status == 200 then
@@ -250,7 +280,11 @@ receive response model =
                     else
                         LoadFailed (errorMessage "Não foi possível carregar as contas." response)
             in
-            ( { model | listing = listing }, Cmd.none )
+            if model.reloadPending then
+                load { model | listing = listing }
+
+            else
+                ( { model | listing = listing }, Cmd.none )
 
         ( "accounts.save", _ ) ->
             if model.saving then
@@ -270,9 +304,7 @@ receiveSave response model =
             load { model | editor = Browsing, saving = False, notice = notice }
 
         failed =
-            ( { model | saving = False, error = errorMessage "Não foi possível concluir a operação." response }
-            , Cmd.none
-            )
+            { model | saving = False, error = errorMessage "Não foi possível concluir a operação." response }
     in
     case ( model.editor, response.status ) of
         ( Creating _ _, 201 ) ->
@@ -285,7 +317,11 @@ receiveSave response model =
             succeeded "Conta excluída."
 
         _ ->
-            failed
+            if model.reloadPending then
+                load failed
+
+            else
+                ( failed, Cmd.none )
 
 
 errorMessage : String -> Api.Response -> String
@@ -323,7 +359,7 @@ view model =
           else
             p [ attribute "role" "status" ] [ text model.notice ]
         , case model.listing of
-            Loading ->
+            Loading _ ->
                 p [ attribute "role" "status" ] [ text "Carregando contas…" ]
 
             LoadFailed message ->
@@ -372,7 +408,7 @@ accountRow account =
         [ article [ class "account-row" ]
             [ div []
                 [ h3 [] [ text account.name ]
-                , p [] [ span [] [ text (kindLabel account.kind) ], text (" · " ++ formatBalance account.balanceCents) ]
+                , p [] [ span [] [ text (kindLabel account.kind) ], text (" · " ++ Money.format account.balanceCents) ]
                 ]
             , div [ class "account-actions" ]
                 [ action "Renomear" (StartRename account) False
@@ -380,35 +416,6 @@ accountRow account =
                 ]
             ]
         ]
-
-
-formatBalance : Int -> String
-formatBalance cents =
-    let
-        digits =
-            String.fromInt (abs cents) |> String.padLeft 3 '0'
-
-        sign =
-            if cents < 0 then
-                "-"
-
-            else
-                ""
-    in
-    sign
-        ++ "R$ "
-        ++ groupThousands (String.dropRight 2 digits)
-        ++ ","
-        ++ String.right 2 digits
-
-
-groupThousands : String -> String
-groupThousands digits =
-    if String.length digits <= 3 then
-        digits
-
-    else
-        groupThousands (String.dropRight 3 digits) ++ "." ++ String.right 3 digits
 
 
 editorForm : String -> String -> Maybe Kind -> Model -> Html Msg
