@@ -1,7 +1,7 @@
 # Frontend — Finanças pessoais
 
-Interface em Elm com login, cadastro, consulta do usuário e sessão
-mantida ao atualizar a página.
+Interface em Elm com login, cadastro, consulta do usuário, renovação
+de sessão e logout com revogação no backend.
 
 ## Requisitos
 
@@ -52,8 +52,8 @@ bash test.sh
 O script executa os testes Playwright em um container com os navegadores
 necessários. Na primeira execução, o download da imagem pode demorar.
 
-Os testes cobrem login, cadastro, consulta do usuário, restauração da
-sessão e logout. As respostas da API são simuladas, portanto o backend
+Os testes cobrem login, cadastro, consulta do usuário, restauração e
+renovação da sessão, logout e limite de tentativas. As respostas da API são simuladas, portanto o backend
 e o banco não precisam estar ligados.
 
 ## Formatar e verificar a compilação
@@ -64,6 +64,31 @@ Dentro de `Frontend/`:
 npm run format
 npm run build
 ```
+
+## Requisições autenticadas em novas telas
+
+Em Elm, use `Api.request` com um identificador de operação, o método,
+o caminho relativo a `/api/v1` e o corpo JSON. Por exemplo, para
+consultar as contas:
+
+```elm
+Api.request
+    { id = "accounts.list"
+    , method = "GET"
+    , path = "/accounts"
+    , body = Encode.null
+    }
+```
+
+O `Main.elm` já assina `Api.responses`. Encaminhe a resposta à tela
+pelo `id` e decodifique `response.body` conforme o endpoint. O corpo
+é `null` no sucesso com HTTP 204. Erros da API mantêm o status, o
+código e o JSON original. Erros de rede e timeout usam status 0.
+
+O `bootstrap.js` acrescenta o Bearer, coordena a renovação e armazena
+o par de tokens em `sessionStorage`. Use identificadores próprios
+para as telas. Os identificadores `login`, `registration`, `profile`
+e `session-ended` pertencem ao fluxo de sessão.
 
 ## Encerrar a aplicação
 

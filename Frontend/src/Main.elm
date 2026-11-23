@@ -1,18 +1,12 @@
-port module Main exposing (main)
+module Main exposing (main)
 
+import Api
 import Browser
 import Html exposing (Html, button, div, form, h1, input, label, p, text)
 import Html.Attributes exposing (attribute, disabled, for, id, minlength, required, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
-import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
-
-
-port saveToken : String -> Cmd msg
-
-
-port clearToken : () -> Cmd msg
 
 
 type alias User =
@@ -29,7 +23,6 @@ type alias Model =
     , loading : Bool
     , error : String
     , notice : String
-    , token : Maybe String
     , user : Maybe User
     }
 
@@ -40,9 +33,7 @@ type Msg
     | ChangeConfirmation String
     | ToggleRegister
     | Submit
-    | ReceiveLogin (Result Http.Error String)
-    | ReceiveRegistration (Result Http.Error ())
-    | ReceiveUser (Result Http.Error User)
+    | ReceiveResponse Api.Response
     | Logout
 
 
@@ -55,53 +46,30 @@ initialModel =
     , loading = False
     , error = ""
     , notice = ""
-    , token = Nothing
     , user = Nothing
     }
 
 
-main : Program (Maybe String) Model Msg
+main : Program Bool Model Msg
 main =
     Browser.element
         { init = init
         , update = update
         , view = view
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = \_ -> Api.responses ReceiveResponse
         }
 
 
-init : Maybe String -> ( Model, Cmd Msg )
-init savedToken =
-    case savedToken of
-        Just token ->
-            ( { initialModel
-                | token = Just token
-                , loading = True
-              }
-            , getCurrentUser token
-            )
-
-        Nothing ->
-            ( initialModel, Cmd.none )
+init : Bool -> ( Model, Cmd Msg )
+init restoring =
+    ( { initialModel | loading = restoring }, Cmd.none )
 
 
-getCurrentUser : String -> Cmd Msg
-getCurrentUser token =
-    Http.request
-        { method = "GET"
-        , headers =
-            [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/v1/users/me"
-        , body = Http.emptyBody
-        , expect =
-            Http.expectJson ReceiveUser
-                (Decode.map2 User
-                    (Decode.field "id" Decode.string)
-                    (Decode.field "email" Decode.string)
-                )
-        , timeout = Just 15000
-        , tracker = Nothing
-        }
+userDecoder : Decode.Decoder User
+userDecoder =
+    Decode.map2 User
+        (Decode.field "id" Decode.string)
+        (Decode.field "email" Decode.string)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -143,129 +111,124 @@ update msg model =
                 , submitCredentials model
                 )
 
-        ReceiveLogin result ->
-            case result of
-                Ok token ->
-                    ( { model
-                        | token = Just token
-                        , password = ""
-                      }
-                    , getCurrentUser token
-                    )
-
-                Err error ->
-                    ( { model
-                        | error = requestError False error
-                        , loading = False
-                      }
-                    , Cmd.none
-                    )
-
-        ReceiveRegistration result ->
-            case result of
-                Ok _ ->
-                    ( { initialModel
-                        | email = model.email
-                        , notice = "Conta criada com sucesso. Entre para continuar."
-                      }
-                    , Cmd.none
-                    )
-
-                Err error ->
-                    ( { model
-                        | error = requestError True error
-                        , loading = False
-                      }
-                    , Cmd.none
-                    )
-
-        ReceiveUser result ->
-            case result of
-                Ok user ->
-                    ( { model
-                        | user = Just user
-                        , loading = False
-                      }
-                    , case model.token of
-                        Just token ->
-                            saveToken token
-
-                        Nothing ->
-                            Cmd.none
-                    )
-
-                Err error ->
-                    ( { initialModel
-                        | email = model.email
-                        , error =
-                            case error of
-                                Http.BadStatus 401 ->
-                                    "Sua sessão expirou ou não é válida. Entre novamente."
-
-                                _ ->
-                                    "Não foi possível consultar sua conta. Tente entrar novamente."
-                      }
-                    , clearToken ()
-                    )
+        ReceiveResponse response ->
+            receiveResponse response model
 
         Logout ->
-            ( initialModel, clearToken () )
+            ( initialModel, Api.logout )
+
+
+receiveResponse : Api.Response -> Model -> ( Model, Cmd Msg )
+receiveResponse response model =
+    case response.id of
+        "login" ->
+            if response.status == 200 && response.error == Nothing then
+                ( { model | password = "" }
+                , Api.request
+                    { id = "profile"
+                    , method = "GET"
+                    , path = "/users/me"
+                    , body = Encode.null
+                    }
+                )
+
+            else
+                ( { model | loading = False, error = requestError False response }, Cmd.none )
+
+        "registration" ->
+            if response.status == 201 then
+                ( { initialModel
+                    | email = model.email
+                    , notice = "Conta criada com sucesso. Entre para continuar."
+                  }
+                , Cmd.none
+                )
+
+            else
+                ( { model | loading = False, error = requestError True response }, Cmd.none )
+
+        "profile" ->
+            case Decode.decodeValue userDecoder response.body of
+                Ok user ->
+                    if response.status == 200 then
+                        ( { initialModel | user = Just user }, Cmd.none )
+
+                    else
+                        ( profileError model response, Cmd.none )
+
+                Err _ ->
+                    ( profileError model response, Cmd.none )
+
+        "session-ended" ->
+            ( profileError model response, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+profileError : Model -> Api.Response -> Model
+profileError model response =
+    { initialModel
+        | email = model.email
+        , error =
+            if response.status == 401 then
+                "Sua sessão expirou ou não é válida. Entre novamente."
+
+            else
+                "Não foi possível consultar sua conta. Tente entrar novamente."
+    }
 
 
 submitCredentials : Model -> Cmd Msg
 submitCredentials model =
-    Http.request
-        { method = "POST"
-        , headers = []
-        , url =
-            if model.registering then
-                "/api/v1/users"
+    let
+        body =
+            Encode.object
+                [ ( "email", Encode.string (String.trim model.email) )
+                , ( "password", Encode.string model.password )
+                ]
+    in
+    if model.registering then
+        Api.register body
 
-            else
-                "/api/v1/auth/login"
-        , body =
-            Http.jsonBody
-                (Encode.object
-                    [ ( "email", Encode.string (String.trim model.email) )
-                    , ( "password", Encode.string model.password )
-                    ]
-                )
-        , expect =
-            if model.registering then
-                Http.expectJson ReceiveRegistration (Decode.succeed ())
-
-            else
-                Http.expectJson ReceiveLogin
-                    (Decode.field "access_token" Decode.string)
-        , timeout = Just 15000
-        , tracker = Nothing
-        }
+    else
+        Api.login body
 
 
-requestError : Bool -> Http.Error -> String
-requestError registering error =
-    case error of
-        Http.BadStatus 401 ->
+requestError : Bool -> Api.Response -> String
+requestError registering response =
+    case response.status of
+        401 ->
             "E-mail ou senha incorretos."
 
-        Http.BadStatus 409 ->
+        409 ->
             "Este e-mail já está cadastrado. Entre na sua conta."
 
-        Http.BadStatus 422 ->
+        422 ->
             if registering then
                 "Confira o e-mail e os requisitos da senha."
 
             else
                 "Confira o e-mail e a senha informados."
 
-        Http.NetworkError ->
-            "Não foi possível conectar ao servidor."
+        429 ->
+            case response.retryAfter of
+                Just seconds ->
+                    "Muitas tentativas. Aguarde " ++ String.fromInt seconds ++ " segundos antes de tentar novamente."
 
-        Http.Timeout ->
-            "O servidor demorou para responder. Tente novamente."
+                Nothing ->
+                    "Muitas tentativas. Aguarde antes de tentar novamente."
 
         _ ->
-            "Não foi possível concluir a operação. Tente novamente."
+            case response.error of
+                Just "network_error" ->
+                    "Não foi possível conectar ao servidor."
+
+                Just "timeout" ->
+                    "O servidor demorou para responder. Tente novamente."
+
+                _ ->
+                    "Não foi possível concluir a operação. Tente novamente."
 
 
 view : Model -> Html Msg
