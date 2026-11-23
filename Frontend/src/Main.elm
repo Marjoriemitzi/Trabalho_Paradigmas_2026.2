@@ -1,9 +1,10 @@
 module Main exposing (main)
 
+import Accounts
 import Api
 import Browser
 import Html exposing (Html, button, div, form, h1, input, label, p, text)
-import Html.Attributes exposing (attribute, disabled, for, id, minlength, required, type_, value)
+import Html.Attributes exposing (attribute, class, disabled, for, id, minlength, required, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -24,6 +25,7 @@ type alias Model =
     , error : String
     , notice : String
     , user : Maybe User
+    , accounts : Maybe Accounts.Model
     }
 
 
@@ -34,6 +36,7 @@ type Msg
     | ToggleRegister
     | Submit
     | ReceiveResponse Api.Response
+    | AccountsMsg Accounts.Msg
     | Logout
 
 
@@ -47,6 +50,7 @@ initialModel =
     , error = ""
     , notice = ""
     , user = Nothing
+    , accounts = Nothing
     }
 
 
@@ -114,6 +118,9 @@ update msg model =
         ReceiveResponse response ->
             receiveResponse response model
 
+        AccountsMsg accountsMsg ->
+            updateAccounts (Accounts.update accountsMsg) model
+
         Logout ->
             ( initialModel, Api.logout )
 
@@ -151,7 +158,13 @@ receiveResponse response model =
             case Decode.decodeValue userDecoder response.body of
                 Ok user ->
                     if response.status == 200 then
-                        ( { initialModel | user = Just user }, Cmd.none )
+                        let
+                            ( accounts, command ) =
+                                Accounts.init
+                        in
+                        ( { initialModel | user = Just user, accounts = Just accounts }
+                        , Cmd.map AccountsMsg command
+                        )
 
                     else
                         ( profileError model response, Cmd.none )
@@ -163,6 +176,20 @@ receiveResponse response model =
             ( profileError model response, Cmd.none )
 
         _ ->
+            updateAccounts (Accounts.receive response) model
+
+
+updateAccounts : (Accounts.Model -> ( Accounts.Model, Cmd Accounts.Msg )) -> Model -> ( Model, Cmd Msg )
+updateAccounts step model =
+    case model.accounts of
+        Just accounts ->
+            let
+                ( next, command ) =
+                    step accounts
+            in
+            ( { model | accounts = Just next }, Cmd.map AccountsMsg command )
+
+        Nothing ->
             ( model, Cmd.none )
 
 
@@ -233,19 +260,30 @@ requestError registering response =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ h1 [] [ text "Finanças pessoais" ]
-        , case model.user of
-            Just user ->
-                div []
-                    [ p [] [ text "Bem-vindo!" ]
-                    , p [] [ text user.email ]
+    case model.user of
+        Just user ->
+            div [ class "dashboard" ]
+                [ h1 [] [ text "Finanças pessoais" ]
+                , div [ class "dashboard-session" ]
+                    [ div []
+                        [ p [] [ text "Bem-vindo!" ]
+                        , p [] [ text user.email ]
+                        ]
                     , button [ onClick Logout ] [ text "Sair" ]
                     ]
+                , case model.accounts of
+                    Just accounts ->
+                        Html.map AccountsMsg (Accounts.view accounts)
 
-            Nothing ->
-                credentialsForm model
-        ]
+                    Nothing ->
+                        text ""
+                ]
+
+        Nothing ->
+            div []
+                [ h1 [] [ text "Finanças pessoais" ]
+                , credentialsForm model
+                ]
 
 
 credentialsForm : Model -> Html Msg

@@ -1,7 +1,8 @@
 # Frontend — Finanças pessoais
 
 Interface em Elm com login, cadastro, consulta do usuário, renovação
-de sessão e logout com revogação no backend.
+de sessão, logout com revogação no backend e gerenciamento de
+contas financeiras.
 
 ## Requisitos
 
@@ -53,8 +54,9 @@ O script executa os testes Playwright em um container com os navegadores
 necessários. Na primeira execução, o download da imagem pode demorar.
 
 Os testes cobrem login, cadastro, consulta do usuário, restauração e
-renovação da sessão, logout e limite de tentativas. As respostas da API são simuladas, portanto o backend
-e o banco não precisam estar ligados.
+renovação da sessão, logout, limite de tentativas e gerenciamento
+de contas financeiras. O backend e o banco podem ficar desligados
+durante os testes com a API simulada.
 
 ## Formatar e verificar a compilação
 
@@ -68,17 +70,10 @@ npm run build
 ## Requisições autenticadas em novas telas
 
 Em Elm, use `Api.request` com um identificador de operação, o método,
-o caminho relativo a `/api/v1` e o corpo JSON. Por exemplo, para
-consultar as contas:
-
-```elm
-Api.request
-    { id = "accounts.list"
-    , method = "GET"
-    , path = "/accounts"
-    , body = Encode.null
-    }
-```
+o caminho relativo a `/api/v1` e o corpo JSON. As telas que precisam
+da lista de contas podem reutilizar `Accounts.listRequest` e
+`Accounts.listDecoder`. Use um identificador próprio por tela, por
+exemplo, `Api.request (Accounts.listRequest "transfers.accounts")`.
 
 O `Main.elm` já assina `Api.responses`. Encaminhe a resposta à tela
 pelo `id` e decodifique `response.body` conforme o endpoint. O corpo

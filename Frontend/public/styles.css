@@ -15,10 +15,12 @@ body {
 
 #app {
   width: 100%;
-  max-width: 360px;
+  max-width: 760px;
 }
 
 #app > div {
+  max-width: 360px;
+  margin: 0 auto;
   padding: 28px;
   background: white;
   border-radius: 12px;
@@ -62,6 +64,71 @@ button:disabled {
 
 input:focus-visible,
 button:focus-visible {
+  outline: 2px solid #528d70;
+  outline-offset: 2px;
+}
+
+#app > .dashboard {
+  max-width: none;
+}
+
+.dashboard-session,
+.account-row,
+.account-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dashboard-session,
+.account-row {
+  justify-content: space-between;
+}
+
+.dashboard-session p,
+.account-row h3,
+.account-row p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.dashboard button {
+  width: auto;
+}
+
+.accounts {
+  margin-top: 24px;
+  border-top: 1px solid #ccd5cf;
+}
+
+.account-actions {
+  margin-top: 12px;
+}
+
+.account-row .account-actions {
+  margin-top: 0;
+}
+
+.account-list {
+  list-style: none;
+  padding: 0;
+}
+
+.account-row {
+  padding: 12px 0;
+  border-bottom: 1px solid #ccd5cf;
+}
+
+.accounts select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd5cf;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.accounts select:focus-visible {
   outline: 2px solid #528d70;
   outline-offset: 2px;
 }
