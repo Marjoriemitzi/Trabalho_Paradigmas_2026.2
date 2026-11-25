@@ -115,12 +115,14 @@ def change_password_factory(
     session_factory: async_sessionmaker[AsyncSession],
     hasher: PasswordHasher,
     policy: PasswordPolicy,
+    clock: Clock,
 ) -> ChangePasswordFactory:
     def build(presenter: ChangePasswordOutputPort) -> ChangePasswordInputPort:
         return ChangePasswordInteractor(
             uow=SqlAlchemyUnitOfWork(session_factory),
             hasher=hasher,
             policy=policy,
+            clock=clock,
             presenter=presenter,
         )
 

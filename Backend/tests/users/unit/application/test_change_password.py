@@ -1,10 +1,15 @@
+import uuid
+from datetime import timedelta
+
 from app.users.application.dtos.change_password import ChangePasswordInput
 from app.users.application.use_cases.change_password import ChangePasswordInteractor
+from app.users.domain.entities.refresh_token import RefreshToken
 from app.users.domain.entities.user import User
 from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from app.users.domain.value_objects.user_id import UserId
 from tests.users.fakes.change_password_presenter_spy import ChangePasswordPresenterSpy
+from tests.users.fakes.fake_clock import FakeClock
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
 from tests.users.fakes.fake_password_policy import FakePasswordPolicy
 from tests.users.fakes.fake_unit_of_work import FakeUnitOfWork
@@ -38,9 +43,28 @@ async def montar() -> (
     presenter = ChangePasswordPresenterSpy()
     policy = PoliticaEspia()
     interactor = ChangePasswordInteractor(
-        uow=uow, hasher=FakePasswordHasher(), policy=policy, presenter=presenter
+        uow=uow,
+        hasher=FakePasswordHasher(),
+        policy=policy,
+        clock=FakeClock(),
+        presenter=presenter,
     )
     return interactor, uow, presenter, policy, ana
+
+
+async def emitir_sessoes(uow: FakeUnitOfWork, ana: User) -> list[RefreshToken]:
+    vence = FakeClock().now() + timedelta(days=30)
+    tokens = [
+        RefreshToken.issue(ana.id, uuid.uuid4(), "a" * 64, vence),
+        RefreshToken.issue(ana.id, uuid.uuid4(), "b" * 64, vence),
+    ]
+    for t in tokens:
+        await uow.refresh_tokens.add(t)
+    return tokens
+
+
+def revogacoes(uow: FakeUnitOfWork) -> list[object]:
+    return [t.revoked_at for t in uow.refresh_tokens.stored.values()]
 
 
 async def test_troca_a_senha_grava_o_hash_novo_e_confirma() -> None:
@@ -55,6 +79,43 @@ async def test_troca_a_senha_grava_o_hash_novo_e_confirma() -> None:
     gravado = uow.users.stored(Email("ana@acme.com"))
     assert gravado is not None
     assert gravado.password_hash == PasswordHash(f"hash-falso:{NOVA}")
+
+
+async def test_troca_a_senha_revoga_todos_os_refresh_tokens_do_usuario() -> None:
+    interactor, uow, _, _, ana = await montar()
+    await emitir_sessoes(uow, ana)
+
+    await interactor.execute(
+        ChangePasswordInput(user_id=ana.id, current_password=ATUAL, new_password=NOVA)
+    )
+
+    assert revogacoes(uow) == [FakeClock().now(), FakeClock().now()]
+
+
+async def test_senha_atual_errada_mantem_os_refresh_tokens_ativos() -> None:
+    interactor, uow, _, _, ana = await montar()
+    await emitir_sessoes(uow, ana)
+
+    await interactor.execute(
+        ChangePasswordInput(
+            user_id=ana.id, current_password="errada", new_password=NOVA
+        )
+    )
+
+    assert revogacoes(uow) == [None, None]
+
+
+async def test_senha_nova_fraca_mantem_os_refresh_tokens_ativos() -> None:
+    interactor, uow, _, _, ana = await montar()
+    await emitir_sessoes(uow, ana)
+
+    await interactor.execute(
+        ChangePasswordInput(
+            user_id=ana.id, current_password=ATUAL, new_password="fraca"
+        )
+    )
+
+    assert revogacoes(uow) == [None, None]
 
 
 async def test_senha_atual_errada_nao_troca_e_nem_consulta_a_politica() -> None:

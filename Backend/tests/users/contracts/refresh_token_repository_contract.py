@@ -13,6 +13,7 @@ AGORA = datetime(2026, 11, 20, 12, 0, tzinfo=UTC)
 HASH_A = "a" * 64
 HASH_B = "b" * 64
 HASH_C = "c" * 64
+HASH_D = "d" * 64
 
 
 def token(
@@ -103,6 +104,34 @@ class RefreshTokenRepositoryContract:
         assert b.revoked_at == AGORA
         assert c is not None
         assert c.revoked_at is None
+
+    async def test_revoke_all_for_user_revoga_todas_as_familias_do_usuario_sem_afetar_outro(  # noqa: E501
+        self,
+        repository: RefreshTokenRepository,
+        usuario: UserId,
+        outro_usuario: UserId,
+    ) -> None:
+        antes = AGORA - timedelta(hours=1)
+        familia, outra_familia, ja_revogada = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        await repository.add(token(usuario, familia, HASH_A))
+        await repository.add(token(usuario, outra_familia, HASH_B))
+        await repository.add(token(usuario, ja_revogada, HASH_D))
+        await repository.revoke_family(ja_revogada, antes)
+        await repository.add(token(outro_usuario, uuid.uuid4(), HASH_C))
+
+        await repository.revoke_all_for_user(usuario, AGORA)
+
+        revogados = {
+            h: (await repository.get_by_hash(h)) for h in (HASH_A, HASH_B, HASH_D)
+        }
+        assert {h: t.revoked_at if t else None for h, t in revogados.items()} == {
+            HASH_A: AGORA,
+            HASH_B: AGORA,
+            HASH_D: antes,
+        }
+        do_outro = await repository.get_by_hash(HASH_C)
+        assert do_outro is not None
+        assert do_outro.revoked_at is None
 
     async def test_delete_expired_before_apaga_so_os_vencidos_antes_do_limite(
         self, repository: RefreshTokenRepository, usuario: UserId

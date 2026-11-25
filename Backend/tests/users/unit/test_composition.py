@@ -184,7 +184,7 @@ def test_todas_as_fabricas_de_users_constroem_interactors_com_uow_sql() -> None:
         (
             cast(
                 Callable[[object], object],
-                change_password_factory(sessions, hasher, policy),
+                change_password_factory(sessions, hasher, policy, clock),
             ),
             ChangePasswordPresenterSpy(),
             ChangePasswordInteractor,

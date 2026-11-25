@@ -140,7 +140,10 @@ def install_users(app: FastAPI, infra: Infra) -> None:
         attempts=attempts,
     )
     app.state.change_password = change_password_factory(
-        session_factory=sessions, hasher=infra.hasher, policy=infra.password_policy
+        session_factory=sessions,
+        hasher=infra.hasher,
+        policy=infra.password_policy,
+        clock=infra.instant_clock,
     )
     app.state.delete_user = delete_user_factory(
         session_factory=sessions, hasher=infra.hasher
