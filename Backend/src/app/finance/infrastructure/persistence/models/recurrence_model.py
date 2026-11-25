@@ -33,6 +33,7 @@ class RecurrenceModel(Base):
             "ends_on IS NULL OR ends_on >= starts_on", name="ends_after_start"
         ),
         Index("ix_recurrences_owner_id", "owner_id"),
+        Index("ix_recurrences_owner_id_account_id", "owner_id", "account_id"),
         ForeignKeyConstraint(
             ["account_id", "owner_id"],
             ["accounts.id", "accounts.owner_id"],

@@ -23,6 +23,8 @@ class TransferModel(Base):
         CheckConstraint("amount_cents > 0", name="amount_positive"),
         CheckConstraint("from_account_id <> to_account_id", name="different_accounts"),
         Index("ix_transfers_owner_id_occurred_on", "owner_id", "occurred_on"),
+        Index("ix_transfers_owner_id_from_account_id", "owner_id", "from_account_id"),
+        Index("ix_transfers_owner_id_to_account_id", "owner_id", "to_account_id"),
         ForeignKeyConstraint(
             ["from_account_id", "owner_id"],
             ["accounts.id", "accounts.owner_id"],

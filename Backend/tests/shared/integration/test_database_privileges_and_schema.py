@@ -224,3 +224,49 @@ async def test_migrations_suportam_upgrade_downgrade_e_upgrade_em_schema_isolado
         async with admin_engine.begin() as conn:
             await conn.execute(DropSchema(schema_temp, cascade=True, if_exists=True))
         await admin_engine.dispose()
+
+
+INDICES_CRITICOS = {
+    "transactions": {
+        "ix_transactions_owner_id_account_id_occurred_on": (
+            "owner_id, account_id, occurred_on"
+        ),
+    },
+    "transfers": {
+        "ix_transfers_owner_id_from_account_id": "owner_id, from_account_id",
+        "ix_transfers_owner_id_to_account_id": "owner_id, to_account_id",
+    },
+    "recurrences": {
+        "ix_recurrences_owner_id_account_id": "owner_id, account_id",
+    },
+    "refresh_tokens": {
+        "ix_refresh_tokens_user_id": "user_id",
+        "ix_refresh_tokens_expires_at": "expires_at",
+    },
+    "revoked_tokens": {
+        "ix_revoked_tokens_user_id": "user_id",
+        "ix_revoked_tokens_expires_at": "expires_at",
+    },
+}
+
+
+async def test_indices_de_isolamento_fk_e_expiracao_existem_no_schema_migrado(
+    connection: AsyncConnection,
+) -> None:
+    rows = await connection.execute(
+        text(
+            "SELECT tablename, indexname, indexdef FROM pg_indexes "
+            "WHERE schemaname = 'public' AND tablename = ANY(:tabelas)"
+        ),
+        {"tabelas": list(INDICES_CRITICOS)},
+    )
+    definicoes = {(r.tablename, r.indexname): r.indexdef for r in rows}
+
+    faltando = []
+    for tabela, indices in INDICES_CRITICOS.items():
+        for nome, colunas in indices.items():
+            definicao = definicoes.get((tabela, nome))
+            if definicao is None or not definicao.endswith(f"btree ({colunas})"):
+                faltando.append((tabela, nome, definicao))
+
+    assert faltando == [], f"Índices ausentes ou com colunas erradas: {faltando}"
