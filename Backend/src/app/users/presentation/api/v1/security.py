@@ -1,13 +1,11 @@
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.shared.presentation.api.errors import ApiError
+from app.users.application.ports.access_token_check import AccessTokenCheck
 from app.users.application.ports.token_verifier import AuthenticatedUser, TokenVerifier
-
-if TYPE_CHECKING:
-    from app.users.application.ports.access_token_check import AccessTokenCheck
 
 _bearer = HTTPBearer(
     auto_error=False, description="O access_token devolvido por /api/v1/auth/login"
@@ -40,7 +38,7 @@ async def require_authenticated_user(
     current = verifier.verify(credentials.credentials)
     if current is None:
         raise invalid_token()
-    check: AccessTokenCheck = request.app.state.access_token_check
+    check = cast(AccessTokenCheck, request.app.state.access_token_check)
     if not await check.is_valid(current):
         raise invalid_token()
     return current

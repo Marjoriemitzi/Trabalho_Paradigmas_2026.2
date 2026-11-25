@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 
 import pytest
@@ -117,11 +118,26 @@ async def test_corpo_que_nao_e_objeto_nao_aponta_campo_nenhum(
     assert "S3nha" not in resposta.text
 
 
-async def test_erro_inesperado_vira_500_sem_mostrar_o_detalhe() -> None:
+async def test_erro_inesperado_vira_500_sem_mostrar_o_detalhe(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     transport = ASGITransport(app=app, raise_app_exceptions=False)
-    async with AsyncClient(transport=transport, base_url="http://teste") as client:
-        resposta = await client.get("/quebrada")
+    with caplog.at_level(
+        logging.ERROR, logger="app.shared.presentation.api.error_handlers"
+    ):
+        async with AsyncClient(transport=transport, base_url="http://teste") as client:
+            resposta = await client.get("/quebrada")
 
     assert resposta.status_code == 500
     assert resposta.json() == {"error": "internal_error"}
     assert "senha do banco" not in resposta.text
+    registros = [
+        r
+        for r in caplog.records
+        if r.name == "app.shared.presentation.api.error_handlers"
+    ]
+    assert len(registros) == 1
+    assert registros[0].levelno == logging.ERROR
+    assert registros[0].getMessage() == "Erro inesperado em GET /quebrada"
+    assert registros[0].exc_info is not None
+    assert isinstance(registros[0].exc_info[1], RuntimeError)
