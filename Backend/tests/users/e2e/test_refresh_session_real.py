@@ -1,3 +1,5 @@
+import asyncio
+
 from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -179,3 +181,42 @@ async def test_token_sem_jti_nao_entra(
     )
 
     assert resposta.status_code == 401
+
+
+async def test_duas_renovacoes_concorrentes_com_mesmo_token_revogam_a_familia(
+    real_client: AsyncClient, fresh_email: str, migrated_database: str
+) -> None:
+    login = await entrar(real_client, fresh_email)
+    pedido = {"refresh_token": login["refresh_token"]}
+
+    respostas = await asyncio.gather(
+        real_client.post("/api/v1/auth/refresh", json=pedido),
+        real_client.post("/api/v1/auth/refresh", json=pedido),
+    )
+
+    sucessos = [r for r in respostas if r.status_code == 200]
+    recusas = [r for r in respostas if r.status_code == 401]
+    assert len(sucessos) <= 1
+    assert len(sucessos) + len(recusas) == 2
+    for recusa in recusas:
+        assert recusa.json() == {"error": "invalid_refresh_token"}
+
+    engine = create_async_engine(migrated_database, poolclass=NullPool)
+    async with engine.connect() as conn:
+        resultado = await conn.execute(
+            text(
+                "SELECT rt.revoked_at IS NOT NULL FROM refresh_tokens rt"
+                " JOIN users u ON u.id = rt.user_id WHERE u.email = :e"
+            ),
+            {"e": fresh_email},
+        )
+        revogados: list[bool] = list(resultado.scalars().all())
+    await engine.dispose()
+    assert revogados
+    assert all(revogados), "a detecção de replay deveria revogar a família inteira"
+    for sucesso in sucessos:
+        renovar = await real_client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": sucesso.json()["refresh_token"]},
+        )
+        assert renovar.status_code == 401
