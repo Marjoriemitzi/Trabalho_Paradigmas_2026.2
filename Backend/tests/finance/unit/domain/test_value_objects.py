@@ -7,7 +7,7 @@ from app.finance.domain.exceptions import InvalidValueError
 from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.category_total import CategoryTotal
 from app.finance.domain.value_objects.description import Description
-from app.finance.domain.value_objects.money import Money
+from app.finance.domain.value_objects.money import MAX_CENTS, Money
 from app.finance.domain.value_objects.period import Period
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 
@@ -22,6 +22,18 @@ def test_dinheiro_nao_pode_ser_zero_nem_negativo() -> None:
             Money(invalido)
         assert erro.value.problem == "not_positive"
         assert str(erro.value) == "not_positive"
+
+
+def test_dinheiro_aceita_exatamente_o_teto() -> None:
+    assert MAX_CENTS == 9_999_999_999_999
+    assert Money(MAX_CENTS).cents == MAX_CENTS
+
+
+@pytest.mark.parametrize("grande", [MAX_CENTS + 1, 2**63 - 1, 2**63, 2**100])
+def test_dinheiro_acima_do_teto_e_too_large(grande: int) -> None:
+    with pytest.raises(InvalidValueError) as erro:
+        Money(grande)
+    assert erro.value.problem == "too_large"
 
 
 @pytest.mark.parametrize(

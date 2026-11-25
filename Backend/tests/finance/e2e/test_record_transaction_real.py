@@ -64,3 +64,26 @@ async def test_descricao_com_byte_nul_responde_422_sem_erro_500(
         "error": "invalid_transaction",
         "fields": [{"field": "description", "problem": "invalid_format"}],
     }
+
+
+async def test_valor_acima_do_int64_responde_422_too_large_sem_erro_500(
+    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+) -> None:
+    resposta = await real_client.post(
+        "/api/v1/transactions",
+        json={
+            "account_id": carteira,
+            "kind": "expense",
+            "amount_cents": 2**63,
+            "description": "Valor absurdo",
+            "occurred_on": "2026-11-07",
+            "category": "transporte",
+        },
+        headers=auth_headers,
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transaction",
+        "fields": [{"field": "amount_cents", "problem": "too_large"}],
+    }
