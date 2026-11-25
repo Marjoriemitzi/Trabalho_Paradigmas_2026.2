@@ -51,3 +51,38 @@ class RecurrenceRulesContract:
                 if rules.is_due(Schedule(MENSAL, 31), date(ano, mes, dia))
             ]
             assert ocorrencias == [ultimo]
+
+    @pytest.mark.parametrize(
+        ("ano", "ultimo_de_fevereiro"),
+        [(1900, 28), (2000, 29), (2100, 28), (2400, 29)],
+    )
+    @pytest.mark.parametrize("dia_pedido", [29, 31])
+    def test_anos_seculares_seguem_a_regra_gregoriana_em_fevereiro(
+        self,
+        rules: RecurrenceRules,
+        ano: int,
+        ultimo_de_fevereiro: int,
+        dia_pedido: int,
+    ) -> None:
+        ocorrencias = [
+            dia
+            for dia in range(1, ultimo_de_fevereiro + 1)
+            if rules.is_due(Schedule(MENSAL, dia_pedido), date(ano, 2, dia))
+        ]
+
+        assert ocorrencias == [ultimo_de_fevereiro]
+        assert calendar.monthrange(ano, 2)[1] == ultimo_de_fevereiro
+
+    @pytest.mark.parametrize("ano", [1900, 2100])
+    def test_dia_28_em_ano_secular_nao_bissexto_nao_e_o_dia_29(
+        self, rules: RecurrenceRules, ano: int
+    ) -> None:
+        assert rules.is_due(Schedule(MENSAL, 28), date(ano, 2, 28)) is True
+        assert rules.is_due(Schedule(MENSAL, 29), date(ano, 3, 1)) is False
+
+    @pytest.mark.parametrize("ano", [2000, 2400])
+    def test_dia_29_em_ano_secular_bissexto_nao_cai_no_dia_28(
+        self, rules: RecurrenceRules, ano: int
+    ) -> None:
+        assert rules.is_due(Schedule(MENSAL, 29), date(ano, 2, 28)) is False
+        assert rules.is_due(Schedule(MENSAL, 29), date(ano, 2, 29)) is True
