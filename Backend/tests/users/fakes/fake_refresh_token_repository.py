@@ -3,6 +3,7 @@ from dataclasses import replace
 from datetime import datetime
 
 from app.users.domain.entities.refresh_token import RefreshToken
+from app.users.domain.value_objects.user_id import UserId
 
 
 class FakeRefreshTokenRepository:
@@ -27,6 +28,11 @@ class FakeRefreshTokenRepository:
     async def revoke_family(self, family_id: uuid.UUID, now: datetime) -> None:
         for token_id, token in list(self.stored.items()):
             if token.family_id == family_id and token.revoked_at is None:
+                self.stored[token_id] = replace(token, revoked_at=now)
+
+    async def revoke_all_for_user(self, user_id: UserId, now: datetime) -> None:
+        for token_id, token in list(self.stored.items()):
+            if token.user_id == user_id and token.revoked_at is None:
                 self.stored[token_id] = replace(token, revoked_at=now)
 
     async def delete_expired_before(self, limit: datetime) -> None:

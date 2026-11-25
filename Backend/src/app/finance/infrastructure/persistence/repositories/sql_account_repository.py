@@ -44,8 +44,16 @@ class SqlAccountRepository:
         modelo = await self._session.scalar(consulta)
         return None if modelo is None else to_entity(modelo)
 
+    async def _owned(self, account: Account) -> AccountModel | None:
+        return await self._session.scalar(
+            select(AccountModel).where(
+                AccountModel.id == account.id.value,
+                AccountModel.owner_id == account.owner.value,
+            )
+        )
+
     async def update(self, account: Account) -> None:
-        modelo = await self._session.get(AccountModel, account.id.value)
+        modelo = await self._owned(account)
         if modelo is None:
             return
         modelo.name = account.name.text
@@ -57,7 +65,7 @@ class SqlAccountRepository:
             raise
 
     async def remove(self, account: Account) -> None:
-        modelo = await self._session.get(AccountModel, account.id.value)
+        modelo = await self._owned(account)
         if modelo is None:
             return
         await self._session.delete(modelo)

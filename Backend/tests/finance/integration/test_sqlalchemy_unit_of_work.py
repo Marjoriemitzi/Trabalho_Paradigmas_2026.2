@@ -1,6 +1,7 @@
 from datetime import date
 from typing import TYPE_CHECKING
 
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -74,3 +75,49 @@ async def test_as_leituras_enxergam_o_que_foi_gravado_antes_do_commit(
 
     assert gastos == [CategoryTotal(Category("mercado"), 4590, 1)]
     assert await quantas_em_outra_sessao(session_factory) == 0
+
+
+def padaria(dono: OwnerId, conta: AccountId) -> Transaction:
+    return Transaction.record(
+        owner=dono,
+        account=conta,
+        kind=TransactionKind.EXPENSE,
+        amount=Money(4590),
+        description=Description("Padaria"),
+        category=Category("mercado"),
+        occurred_on=date(2026, 11, 7),
+    )
+
+
+async def test_sem_commit_nada_fica_gravado(
+    session_factory: Fabrica, dono: OwnerId, conta: AccountId
+) -> None:
+    uow = SqlAlchemyUnitOfWork(session_factory)
+    async with uow:
+        await uow.transactions.add(padaria(dono, conta))
+
+    assert await quantas_em_outra_sessao(session_factory) == 0
+
+
+async def falhar_no_meio(
+    uow: SqlAlchemyUnitOfWork, dono: OwnerId, conta: AccountId
+) -> None:
+    async with uow:
+        await uow.transactions.add(padaria(dono, conta))
+        raise RuntimeError("falhou no meio do caso de uso")
+
+
+async def test_erro_no_meio_desfaz_e_continua_subindo(
+    session_factory: Fabrica, dono: OwnerId, conta: AccountId
+) -> None:
+    with pytest.raises(RuntimeError, match="falhou"):
+        await falhar_no_meio(SqlAlchemyUnitOfWork(session_factory), dono, conta)
+
+    assert await quantas_em_outra_sessao(session_factory) == 0
+
+
+def test_usar_fora_do_bloco_e_um_erro_claro(session_factory: Fabrica) -> None:
+    uow = SqlAlchemyUnitOfWork(session_factory)
+    for repositorio in ("transactions", "accounts", "recurrences", "transfers"):
+        with pytest.raises(RuntimeError, match="async with"):
+            getattr(uow, repositorio)

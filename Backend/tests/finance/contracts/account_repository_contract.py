@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from app.finance.domain.entities.account import Account
@@ -147,3 +149,29 @@ class AccountRepositoryContract:
         await repository.add(conta(dono, "Nubank"))
 
         assert len(await repository.list_by_owner(dono)) == 1
+
+    async def test_update_com_outro_dono_nao_altera_a_conta_original(
+        self, repository: AccountRepository, dono: OwnerId, outro_dono: OwnerId
+    ) -> None:
+        nubank = conta(dono, "Nubank")
+        await repository.add(nubank)
+        impostora = replace(nubank, owner=outro_dono)
+        impostora.rename(AccountName("Roubada"))
+
+        await repository.update(impostora)
+
+        lida = await repository.get(dono, nubank.id)
+        assert lida is not None
+        assert lida.name == AccountName("Nubank")
+        assert await repository.get(outro_dono, nubank.id) is None
+
+    async def test_remove_com_outro_dono_nao_apaga_a_conta_original(
+        self, repository: AccountRepository, dono: OwnerId, outro_dono: OwnerId
+    ) -> None:
+        nubank = conta(dono, "Nubank")
+        await repository.add(nubank)
+
+        await repository.remove(replace(nubank, owner=outro_dono))
+
+        assert await repository.get(dono, nubank.id) is not None
+        assert [c.id for c in await repository.list_by_owner(dono)] == [nubank.id]

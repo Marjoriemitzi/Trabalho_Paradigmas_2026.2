@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Protocol, override
 
 from app.users.application.dtos.change_password import ChangePasswordInput
+from app.users.application.ports.clock import Clock
 from app.users.application.ports.password_hasher import PasswordHasher
 from app.users.application.ports.unit_of_work import UnitOfWork
 from app.users.domain.exceptions import WeakPasswordError
@@ -29,6 +30,7 @@ class ChangePasswordInteractor(ChangePasswordInputPort):
     uow: UnitOfWork
     hasher: PasswordHasher
     policy: PasswordPolicy
+    clock: Clock
     presenter: ChangePasswordOutputPort
 
     @override
@@ -57,6 +59,7 @@ class ChangePasswordInteractor(ChangePasswordInputPort):
 
             user.change_password(await self.hasher.hash(RawPassword(data.new_password)))
             await self.uow.users.update_password(user)
+            await self.uow.refresh_tokens.revoke_all_for_user(user.id, self.clock.now())
             await self.uow.commit()
 
         self.presenter.present_changed()

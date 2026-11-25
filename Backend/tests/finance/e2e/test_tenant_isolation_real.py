@@ -410,3 +410,267 @@ async def test_apagar_transferencia_de_outro_usuario_responde_404_e_mantem_intac
     assert [t["id"] for t in lista_a.json()["transfers"]] == [transfer_a]
     lista_b = await real_client.get(TRANSFERS_URL, params=NOVEMBRO, headers=usuario_b)
     assert lista_b.json()["transfers"] == []
+
+
+RECURRENCES_URL = "/api/v1/recurrences"
+
+
+def corpo_recorrencia(conta: str, descricao: str = "Aluguel") -> dict[str, object]:
+    return {
+        "account_id": conta,
+        "kind": "expense",
+        "amount_cents": 150000,
+        "description": descricao,
+        "category": "moradia",
+        "frequency": "monthly",
+        "day": 10,
+        "starts_on": "2026-11-01",
+        "ends_on": None,
+    }
+
+
+async def criar_recorrencia(
+    client: AsyncClient, headers: dict[str, str], conta: str, descricao: str
+) -> dict[str, object]:
+    resposta = await client.post(
+        RECURRENCES_URL, json=corpo_recorrencia(conta, descricao), headers=headers
+    )
+    assert resposta.status_code == 201
+    return dict(resposta.json())
+
+
+async def recorrencias(
+    client: AsyncClient, headers: dict[str, str]
+) -> list[dict[str, object]]:
+    resposta = await client.get(RECURRENCES_URL, headers=headers)
+    assert resposta.status_code == 200
+    return list(resposta.json()["recurrences"])
+
+
+async def transferencias(
+    client: AsyncClient, headers: dict[str, str]
+) -> list[dict[str, object]]:
+    resposta = await client.get(TRANSFERS_URL, params=NOVEMBRO, headers=headers)
+    assert resposta.status_code == 200
+    return list(resposta.json()["transfers"])
+
+
+async def test_renomear_ou_apagar_conta_de_outro_usuario_responde_404_e_mantem_intacta(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    conta_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    await lancar(real_client, usuario_a, conta_a, "income", 70000, "Receita A")
+    await abrir_conta(real_client, usuario_b, "Carteira B", kind="wallet")
+
+    renomear = await real_client.patch(
+        f"{ACCOUNTS_URL}/{conta_a}", json={"name": "Invadida"}, headers=usuario_b
+    )
+    apagar = await real_client.delete(f"{ACCOUNTS_URL}/{conta_a}", headers=usuario_b)
+
+    for resposta in (renomear, apagar):
+        assert resposta.status_code == 404
+        assert resposta.json() == {"error": "account_not_found"}
+    assert await saldos(real_client, usuario_a) == {"Corrente A": 70000}
+    assert await saldos(real_client, usuario_b) == {"Carteira B": 0}
+
+
+async def test_listar_transferencias_mostra_so_as_proprias(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    corrente_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    cartao_a = await abrir_conta(real_client, usuario_a, "Cartão A", "credit_card")
+    transfer_a = await transferir(
+        real_client, usuario_a, corrente_a, cartao_a, 9000, "Fatura Secreta A"
+    )
+    corrente_b = await abrir_conta(real_client, usuario_b, "Corrente B")
+    carteira_b = await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+    transfer_b = await transferir(
+        real_client, usuario_b, corrente_b, carteira_b, 3000, "Saque B"
+    )
+
+    resposta = await real_client.get(TRANSFERS_URL, params=NOVEMBRO, headers=usuario_b)
+
+    assert resposta.status_code == 200
+    assert [t["id"] for t in resposta.json()["transfers"]] == [transfer_b]
+    assert transfer_a not in resposta.text
+    assert "Fatura Secreta A" not in resposta.text
+    assert [t["id"] for t in await transferencias(real_client, usuario_a)] == [
+        transfer_a
+    ]
+
+
+@pytest.mark.parametrize("campo_alheio", ["from_account_id", "to_account_id"])
+async def test_corrigir_transferencia_propria_com_conta_alheia_responde_422(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+    campo_alheio: str,
+) -> None:
+    conta_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    await lancar(real_client, usuario_a, conta_a, "income", 100000, "Receita A")
+    corrente_b = await abrir_conta(real_client, usuario_b, "Corrente B")
+    carteira_b = await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+    await lancar(real_client, usuario_b, corrente_b, "income", 50000, "Receita B")
+    transfer_b = await transferir(
+        real_client, usuario_b, corrente_b, carteira_b, 2000, "Saque B"
+    )
+    corpo = {
+        "from_account_id": corrente_b,
+        "to_account_id": carteira_b,
+        "amount_cents": 7000,
+        "description": "Desviada",
+        "occurred_on": "2026-11-12",
+        campo_alheio: conta_a,
+    }
+
+    resposta = await real_client.put(
+        f"{TRANSFERS_URL}/{transfer_b}", json=corpo, headers=usuario_b
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transfer",
+        "fields": [{"field": campo_alheio, "problem": "not_found"}],
+    }
+    [gravada] = await transferencias(real_client, usuario_b)
+    assert gravada["id"] == transfer_b
+    assert gravada["from_account_id"] == corrente_b
+    assert gravada["to_account_id"] == carteira_b
+    assert gravada["amount_cents"] == 2000
+    assert gravada["description"] == "Saque B"
+    assert await saldos(real_client, usuario_a) == {"Corrente A": 100000}
+    assert await saldos(real_client, usuario_b) == {
+        "Carteira B": 2000,
+        "Corrente B": 48000,
+    }
+
+
+async def test_corrigir_transferencia_de_outro_usuario_com_contas_proprias_da_404(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    corrente_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    cartao_a = await abrir_conta(real_client, usuario_a, "Cartão A", "credit_card")
+    transfer_a = await transferir(
+        real_client, usuario_a, corrente_a, cartao_a, 9000, "Fatura A"
+    )
+    corrente_b = await abrir_conta(real_client, usuario_b, "Corrente B")
+    carteira_b = await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+
+    resposta = await real_client.put(
+        f"{TRANSFERS_URL}/{transfer_a}",
+        json={
+            "from_account_id": corrente_b,
+            "to_account_id": carteira_b,
+            "amount_cents": 1,
+            "description": "Adulterada",
+            "occurred_on": "2026-11-12",
+        },
+        headers=usuario_b,
+    )
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"error": "transfer_not_found"}
+    [gravada] = await transferencias(real_client, usuario_a)
+    assert gravada["id"] == transfer_a
+    assert gravada["from_account_id"] == corrente_a
+    assert gravada["to_account_id"] == cartao_a
+    assert gravada["amount_cents"] == 9000
+    assert gravada["description"] == "Fatura A"
+    assert await transferencias(real_client, usuario_b) == []
+
+
+async def test_listar_recorrencias_mostra_so_as_proprias(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    conta_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    rec_a = await criar_recorrencia(real_client, usuario_a, conta_a, "Secreta A")
+    conta_b = await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+    rec_b = await criar_recorrencia(real_client, usuario_b, conta_b, "Internet B")
+
+    resposta = await real_client.get(RECURRENCES_URL, headers=usuario_b)
+
+    assert resposta.status_code == 200
+    assert [r["id"] for r in resposta.json()["recurrences"]] == [rec_b["id"]]
+    assert str(rec_a["id"]) not in resposta.text
+    assert "Secreta A" not in resposta.text
+    assert [r["id"] for r in await recorrencias(real_client, usuario_a)] == [
+        rec_a["id"]
+    ]
+
+
+async def test_criar_recorrencia_em_conta_alheia_responde_422_sem_efeito(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    conta_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+
+    resposta = await real_client.post(
+        RECURRENCES_URL, json=corpo_recorrencia(conta_a, "Cruzada"), headers=usuario_b
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_recurrence",
+        "fields": [{"field": "account_id", "problem": "not_found"}],
+    }
+    assert await recorrencias(real_client, usuario_a) == []
+    assert await recorrencias(real_client, usuario_b) == []
+
+
+async def test_mover_recorrencia_propria_para_conta_alheia_responde_422(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    conta_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    conta_b = await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+    rec_b = await criar_recorrencia(real_client, usuario_b, conta_b, "Internet B")
+
+    resposta = await real_client.put(
+        f"{RECURRENCES_URL}/{rec_b['id']}",
+        json=corpo_recorrencia(conta_a, "Movida"),
+        headers=usuario_b,
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_recurrence",
+        "fields": [{"field": "account_id", "problem": "not_found"}],
+    }
+    assert await recorrencias(real_client, usuario_b) == [rec_b]
+    assert await recorrencias(real_client, usuario_a) == []
+
+
+async def test_corrigir_ou_apagar_recorrencia_de_outro_usuario_responde_404(
+    real_client: AsyncClient,
+    usuario_a: dict[str, str],
+    usuario_b: dict[str, str],
+) -> None:
+    conta_a = await abrir_conta(real_client, usuario_a, "Corrente A")
+    rec_a = await criar_recorrencia(real_client, usuario_a, conta_a, "Aluguel A")
+    conta_b = await abrir_conta(real_client, usuario_b, "Carteira B", "wallet")
+
+    corrigir = await real_client.put(
+        f"{RECURRENCES_URL}/{rec_a['id']}",
+        json=corpo_recorrencia(conta_b, "Adulterada"),
+        headers=usuario_b,
+    )
+    apagar = await real_client.delete(
+        f"{RECURRENCES_URL}/{rec_a['id']}", headers=usuario_b
+    )
+
+    for resposta in (corrigir, apagar):
+        assert resposta.status_code == 404
+        assert resposta.json() == {"error": "recurrence_not_found"}
+    assert await recorrencias(real_client, usuario_a) == [rec_a]
+    assert await recorrencias(real_client, usuario_b) == []

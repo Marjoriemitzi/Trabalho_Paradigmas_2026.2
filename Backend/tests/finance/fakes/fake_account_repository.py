@@ -36,7 +36,14 @@ class FakeAccountRepository:
             for a in self.stored
         ):
             raise AccountNameTakenError(account.name.text)
-        self.stored = [account if a.id == account.id else a for a in self.stored]
+        self.stored = [
+            account if a.id == account.id and a.owner == account.owner else a
+            for a in self.stored
+        ]
 
     async def remove(self, account: Account) -> None:
-        self.stored = [a for a in self.stored if a.id != account.id]
+        self.stored = [
+            a
+            for a in self.stored
+            if not (a.id == account.id and a.owner == account.owner)
+        ]

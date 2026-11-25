@@ -16,7 +16,7 @@ from app.finance.domain.value_objects.account_kind import AccountKind
 from app.finance.domain.value_objects.account_name import AccountName
 from app.finance.domain.value_objects.category import Category
 from app.finance.domain.value_objects.description import Description
-from app.finance.domain.value_objects.money import Money
+from app.finance.domain.value_objects.money import MAX_CENTS, Money
 from app.finance.domain.value_objects.owner_id import OwnerId
 from app.finance.domain.value_objects.period import Period
 from app.finance.domain.value_objects.statement import Statement
@@ -35,7 +35,7 @@ CONTA_POUPANCA = Account.open(DONO, AccountName("Reserva"), AccountKind.WALLET)
 CONTA_CARTAO = Account.open(DONO, AccountName("Cartão"), AccountKind.CREDIT_CARD)
 CONTAS_AUXILIARES = (CONTA_POUPANCA.id, CONTA_CARTAO.id)
 
-CENTS_MAX = 2**60
+CENTS_MAX = MAX_CENTS
 OPENING_MIN = -(2**60)
 OPENING_MAX = 2**60
 
@@ -271,8 +271,8 @@ def test_simetria_de_criacao_e_remocao_nos_repositorios_fake(
     asyncio.run(verificar())
 
 
-@given(cents=st.integers(min_value=1, max_value=2**63 - 1))
-def test_money_aceita_inteiros_positivos_ate_64_bits(cents: int) -> None:
+@given(cents=st.integers(min_value=1, max_value=MAX_CENTS))
+def test_money_aceita_inteiros_positivos_ate_o_teto(cents: int) -> None:
     assert Money(cents).cents == cents
 
 
@@ -298,3 +298,10 @@ def test_money_rejeita_qualquer_valor_nao_inteiro_em_runtime(
 ) -> None:
     with pytest.raises(TypeError, match="inteiro"):
         Money(valor)  # type: ignore[arg-type]
+
+
+@given(cents=st.integers(min_value=MAX_CENTS + 1))
+def test_money_acima_do_teto_e_recusado_como_too_large(cents: int) -> None:
+    with pytest.raises(InvalidValueError) as erro:
+        Money(cents)
+    assert erro.value.problem == "too_large"

@@ -1,13 +1,19 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from app.finance.domain.value_objects.description import Description
+from app.finance.domain.value_objects.frequency import Frequency
+from app.finance.domain.value_objects.schedule import Schedule
 from app.finance.domain.value_objects.transaction_kind import TransactionKind
 from app.finance.infrastructure.prolog.prolog_categorizer import PrologCategorizer
+from app.finance.infrastructure.prolog.prolog_recurrence_rules import (
+    PrologRecurrenceRules,
+)
 from app.shared.infrastructure.prolog.gateway import PrologGateway
 from app.users.domain.exceptions import WeakPasswordError
 from app.users.infrastructure.prolog.prolog_password_policy import (
@@ -128,6 +134,18 @@ def test_preserva_tamanho_em_codepoints_utf8(
     assert prolog.values("comprimento", texto) == [str(tamanho)]
 
 
+RAMOS = 10
+MENSAL_31 = Schedule(Frequency.MONTHLY, 31)
+SEGUNDA = Schedule(Frequency.WEEKLY, 1)
+# Ramos 6 a 9: recorrência mensal (anos seculares) e semanal, devida ou não.
+CASOS_DE_RECORRENCIA = {
+    6: ("rec_mensal_sim", MENSAL_31, date(2100, 2, 28)),
+    7: ("rec_mensal_nao", MENSAL_31, date(2000, 2, 28)),
+    8: ("rec_semanal_sim", SEGUNDA, date(2026, 11, 16)),
+    9: ("rec_semanal_nao", SEGUNDA, date(2026, 11, 13)),
+}
+
+
 def _checar_senha(policy: PrologPasswordPolicy, senha: str) -> str:
     try:
         policy.check(senha)
@@ -136,13 +154,14 @@ def _checar_senha(policy: PrologPasswordPolicy, senha: str) -> str:
     return "ok"
 
 
-def _executar_caso_misto(
+def _executar_caso_misto(  # noqa: PLR0911
     prolog: PrologGateway,
     categorizer: PrologCategorizer,
     policy: PrologPasswordPolicy,
+    recorrencias: PrologRecurrenceRules,
     indice: int,
 ) -> tuple[str, object]:
-    ramo = indice % 6
+    ramo = indice % RAMOS
     if ramo == 0:
         return (
             "cat_mercado",
@@ -163,22 +182,26 @@ def _executar_caso_misto(
         return ("pw_fraca", _checar_senha(policy, "abc"))
     if ramo == 4:
         return ("tmp_cor", prolog.holds("cor", "azul"))
-    return ("tmp_dobro", prolog.values("dobro", indice))
+    if ramo == 5:
+        return ("tmp_dobro", prolog.values("dobro", indice))
+    nome, agenda, dia = CASOS_DE_RECORRENCIA[ramo]
+    return (nome, recorrencias.is_due(agenda, dia))
 
 
 def _esperado_caso_misto(indice: int) -> tuple[str, object]:
-    ramo = indice % 6
-    if ramo == 0:
-        return ("cat_mercado", "mercado")
-    if ramo == 1:
-        return ("cat_salario", "salario")
-    if ramo == 2:
-        return ("pw_forte", "ok")
-    if ramo == 3:
-        return ("pw_fraca", "no_digit,no_symbol,no_upper,too_short")
-    if ramo == 4:
-        return ("tmp_cor", True)
-    return ("tmp_dobro", [str(indice * 2)])
+    ramo = indice % RAMOS
+    fixos: dict[int, tuple[str, object]] = {
+        0: ("cat_mercado", "mercado"),
+        1: ("cat_salario", "salario"),
+        2: ("pw_forte", "ok"),
+        3: ("pw_fraca", "no_digit,no_symbol,no_upper,too_short"),
+        4: ("tmp_cor", True),
+        5: ("tmp_dobro", [str(indice * 2)]),
+    }
+    if ramo in fixos:
+        return fixos[ramo]
+    nome = CASOS_DE_RECORRENCIA[ramo][0]
+    return (nome, nome.endswith("_sim"))
 
 
 def test_concorrencia_mista_entre_regras_nao_troca_resultados(
@@ -186,12 +209,15 @@ def test_concorrencia_mista_entre_regras_nao_troca_resultados(
 ) -> None:
     categorizer = PrologCategorizer(prolog, RULES_DIR)
     policy = PrologPasswordPolicy(prolog, RULES_DIR)
-    indices = list(range(72))
+    recorrencias = PrologRecurrenceRules(prolog, RULES_DIR)
+    indices = list(range(80))
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         resultados = list(
             pool.map(
-                lambda i: _executar_caso_misto(prolog, categorizer, policy, i),
+                lambda i: _executar_caso_misto(
+                    prolog, categorizer, policy, recorrencias, i
+                ),
                 indices,
             )
         )
@@ -204,11 +230,14 @@ async def test_concorrencia_assincrona_mista_com_to_thread(
 ) -> None:
     categorizer = PrologCategorizer(prolog, RULES_DIR)
     policy = PrologPasswordPolicy(prolog, RULES_DIR)
+    recorrencias = PrologRecurrenceRules(prolog, RULES_DIR)
     indices = list(range(60))
 
     resultados = await asyncio.gather(
         *(
-            asyncio.to_thread(_executar_caso_misto, prolog, categorizer, policy, i)
+            asyncio.to_thread(
+                _executar_caso_misto, prolog, categorizer, policy, recorrencias, i
+            )
             for i in indices
         )
     )

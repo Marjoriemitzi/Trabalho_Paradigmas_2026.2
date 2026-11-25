@@ -84,8 +84,9 @@ async def get_current_user(
     "/me/password",
     status_code=status.HTTP_204_NO_CONTENT,
     description=(
-        "Troca a senha de quem está logado. Os tokens já emitidos continuam valendo "
-        "até expirarem (`JWT_EXPIRES_MINUTES`); a revogação fica para o refresh token."
+        "Troca a senha de quem está logado e revoga todos os refresh tokens da pessoa, "
+        "encerrando as outras sessões. Os access tokens já emitidos continuam valendo "
+        "até expirarem (`JWT_EXPIRES_MINUTES`)."
     ),
     responses={
         status.HTTP_401_UNAUTHORIZED: {

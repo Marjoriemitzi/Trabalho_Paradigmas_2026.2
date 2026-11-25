@@ -24,6 +24,12 @@ class TransactionModel(Base):
         CheckConstraint("kind IN ('income', 'expense')", name="kind_known"),
         Index("ix_transactions_owner_id_occurred_on", "owner_id", "occurred_on"),
         Index(
+            "ix_transactions_owner_id_account_id_occurred_on",
+            "owner_id",
+            "account_id",
+            "occurred_on",
+        ),
+        Index(
             "uq_transactions_recurrence_id_occurred_on",
             "recurrence_id",
             "occurred_on",

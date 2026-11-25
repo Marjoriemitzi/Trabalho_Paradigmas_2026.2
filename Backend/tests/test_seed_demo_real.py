@@ -1,4 +1,6 @@
+import asyncio
 import uuid
+from dataclasses import replace
 from datetime import date, timedelta
 
 import pytest
@@ -150,3 +152,60 @@ def test_a_senha_gerada_passa_na_politica() -> None:
     assert any(c.islower() for c in senha)
     assert any(c.isdigit() for c in senha)
     assert any(not c.isalnum() for c in senha)
+
+
+RESUMO = seed_demo.SeedSummary(
+    email="demo@acme.com",
+    password="Gerada!Senha123",
+    generated_password=True,
+    accounts=3,
+    transactions=12,
+    transfers=2,
+    recurrences=1,
+    balances=(("Carteira", 12345), ("Cartão", -150000)),
+)
+
+
+def test_o_resumo_mostra_a_senha_gerada_so_quando_foi_gerada(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    seed_demo._print_summary(RESUMO)
+
+    assert capsys.readouterr().out == (
+        "Usuário de demonstração: demo@acme.com\n"
+        "Senha gerada (aparece só desta vez): Gerada!Senha123\n"
+        "Criados: 3 contas, 12 lançamentos, 2 transferências, 1 recorrências\n"
+        "  Carteira: R$ 123.45\n"
+        "  Cartão: R$ -1,500.00\n"
+    )
+
+
+def test_o_resumo_nao_mostra_a_senha_informada(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    seed_demo._print_summary(replace(RESUMO, generated_password=False))
+
+    saida = capsys.readouterr().out
+    assert "Gerada!Senha123" not in saida
+    assert "Senha gerada" not in saida
+    assert saida.startswith("Usuário de demonstração: demo@acme.com\nCriados: 3")
+
+
+def test_o_comando_com_reset_em_desenvolvimento_sai_com_codigo_0(
+    migrated_database: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    email_novo: str,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("DEMO_PASSWORD", SENHA)
+    try:
+        codigo = seed_demo.main(["--email", email_novo, "--reset"])
+
+        saida = capsys.readouterr().out
+        assert codigo == 0
+        assert saida.startswith(f"Usuário de demonstração: {email_novo}\n")
+        assert "Senha gerada" not in saida
+        assert "Criados: 3 contas" in saida
+    finally:
+        asyncio.run(apagar(migrated_database, email_novo))

@@ -73,6 +73,32 @@ def nova() -> Recurrence:
     )
 
 
+def test_recorrencias_sao_iguais_pelo_id() -> None:
+    original = nova()
+    mesma = nova()
+    mesma.id = original.id
+    mesma.description = Description("Outra descrição")
+
+    assert original == mesma
+    assert hash(original) == hash(mesma) == hash(original.id)
+    assert len({original, mesma}) == 1
+
+
+def test_recorrencias_com_ids_diferentes_nao_sao_iguais() -> None:
+    a, b = nova(), nova()
+
+    assert a != b
+    assert len({a, b}) == 2
+
+
+def test_recorrencia_nunca_e_igual_a_outro_tipo() -> None:
+    recorrencia = nova()
+
+    assert recorrencia != recorrencia.id
+    assert recorrencia != "recorrencia"
+    assert recorrencia.__eq__(object()) is False
+
+
 def test_criar_recorrencia_guarda_todos_os_campos() -> None:
     dono = OwnerId(uuid.uuid4())
     conta = AccountId.new()

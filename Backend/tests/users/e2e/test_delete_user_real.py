@@ -18,6 +18,7 @@ async def contar(banco: str, usuario: str) -> dict[str, int]:
             ("accounts", "owner_id"),
             ("transactions", "owner_id"),
             ("transfers", "owner_id"),
+            ("recurrences", "owner_id"),
         ):
             consulta = text(f"SELECT count(*) FROM {tabela} WHERE {coluna} = :u")  # noqa: S608
             resultado[tabela] = await conn.scalar(consulta, {"u": uuid.UUID(usuario)})
@@ -54,6 +55,20 @@ async def preparar_dados(
     assert (
         await client.post("/api/v1/transfers", json=transferencia, headers=headers)
     ).status_code == 201
+    recorrencia = {
+        "account_id": contas[0],
+        "kind": "expense",
+        "amount_cents": 150000,
+        "description": "Aluguel",
+        "category": "moradia",
+        "frequency": "monthly",
+        "day": 10,
+        "starts_on": "2026-11-01",
+        "ends_on": None,
+    }
+    assert (
+        await client.post("/api/v1/recurrences", json=recorrencia, headers=headers)
+    ).status_code == 201
     eu = await client.get(URL, headers=headers)
     return str(eu.json()["id"]), contas[0]
 
@@ -65,7 +80,13 @@ async def test_apagar_a_conta_leva_junto_todos_os_dados_da_pessoa(
 ) -> None:
     usuario, _ = await preparar_dados(real_client, auth_headers)
     antes = await contar(migrated_database, usuario)
-    assert antes == {"users": 1, "accounts": 2, "transactions": 1, "transfers": 1}
+    assert antes == {
+        "users": 1,
+        "accounts": 2,
+        "transactions": 1,
+        "transfers": 1,
+        "recurrences": 1,
+    }
 
     resposta = await real_client.request(
         "DELETE", URL, json={"password": SENHA}, headers=auth_headers
@@ -73,7 +94,13 @@ async def test_apagar_a_conta_leva_junto_todos_os_dados_da_pessoa(
 
     assert resposta.status_code == 204
     depois = await contar(migrated_database, usuario)
-    assert depois == {"users": 0, "accounts": 0, "transactions": 0, "transfers": 0}
+    assert depois == {
+        "users": 0,
+        "accounts": 0,
+        "transactions": 0,
+        "transfers": 0,
+        "recurrences": 0,
+    }
 
 
 async def test_o_token_antigo_deixa_de_valer_em_todas_as_rotas(
@@ -129,4 +156,5 @@ async def test_senha_errada_nao_apaga_nada(
         "accounts": 2,
         "transactions": 1,
         "transfers": 1,
+        "recurrences": 1,
     }

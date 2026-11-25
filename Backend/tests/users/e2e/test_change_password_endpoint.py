@@ -15,6 +15,7 @@ from app.users.domain.value_objects.email import Email
 from app.users.domain.value_objects.password import PasswordHash
 from app.users.presentation.api.v1.routers.users import router
 from tests.users.fakes.fake_access_token_check import FakeAccessTokenCheck
+from tests.users.fakes.fake_clock import FakeClock
 from tests.users.fakes.fake_password_hasher import FakePasswordHasher
 from tests.users.fakes.fake_password_policy import FakePasswordPolicy
 from tests.users.fakes.fake_token_issuer import FakeTokenIssuer
@@ -44,6 +45,7 @@ async def client() -> AsyncIterator[AsyncClient]:
             uow=uow,
             hasher=FakePasswordHasher(),
             policy=FakePasswordPolicy(rejects={"fraca": ["too_short"]}),
+            clock=FakeClock(),
             presenter=presenter,
         )
 
