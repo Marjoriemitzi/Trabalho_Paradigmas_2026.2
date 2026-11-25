@@ -97,15 +97,12 @@ async def test_dado_recusado_pelo_banco_e_pelo_dominio(
 
 
 async def test_recorrencia_de_outro_usuario_da_404(
-    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+    real_client: AsyncClient,
+    auth_headers: dict[str, str],
+    carteira: str,
+    intruso: dict[str, str],
 ) -> None:
     criada = await real_client.post(URL, json=corpo(carteira), headers=auth_headers)
-    email = f"intruso-{uuid.uuid4().hex}@acme.com"
-    await real_client.post("/api/v1/users", json={"email": email, "password": SENHA})
-    login = await real_client.post(
-        "/api/v1/auth/login", json={"email": email, "password": SENHA}
-    )
-    intruso = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     corrigir = await real_client.put(
         f"{URL}/{criada.json()['id']}", json=corpo(carteira), headers=intruso

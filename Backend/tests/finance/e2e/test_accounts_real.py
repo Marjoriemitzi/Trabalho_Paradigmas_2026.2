@@ -1,5 +1,3 @@
-import uuid
-
 from httpx import AsyncClient
 
 URL = "/api/v1/accounts"
@@ -106,22 +104,11 @@ async def test_conta_com_transacao_nao_pode_ser_apagada(
 
 
 async def test_conta_de_outra_pessoa_responde_404(
-    real_client: AsyncClient, auth_headers: dict[str, str], carteira: str
+    real_client: AsyncClient,
+    auth_headers: dict[str, str],
+    carteira: str,
+    intruso: dict[str, str],
 ) -> None:
-    outra = await real_client.post(
-        "/api/v1/users",
-        json={
-            "email": f"outra-{uuid.uuid4().hex}@acme.com",
-            "password": "S3nha!Forte123",
-        },
-    )
-    assert outra.status_code == 201
-    login = await real_client.post(
-        "/api/v1/auth/login",
-        json={"email": outra.json()["email"], "password": "S3nha!Forte123"},
-    )
-    intruso = {"Authorization": f"Bearer {login.json()['access_token']}"}
-
     renomear = await real_client.patch(
         f"{URL}/{carteira}", json={"name": "X"}, headers=intruso
     )

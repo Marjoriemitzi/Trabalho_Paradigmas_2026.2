@@ -34,6 +34,15 @@ URL = "/api/v1/transfers"
 ANA, BIA = uuid.uuid4(), uuid.uuid4()
 CORRENTE = Account.open(OwnerId(ANA), AccountName("Corrente"), AccountKind.CHECKING)
 CARTAO = Account.open(OwnerId(ANA), AccountName("Cartão"), AccountKind.CREDIT_CARD)
+CORRENTE_BIA = Account.open(OwnerId(BIA), AccountName("Corrente"), AccountKind.CHECKING)
+CARTEIRA_BIA = Account.open(OwnerId(BIA), AccountName("Carteira"), AccountKind.WALLET)
+CORPO_BIA = {
+    "from_account_id": str(CORRENTE_BIA.id.value),
+    "to_account_id": str(CARTEIRA_BIA.id.value),
+    "amount_cents": 3000,
+    "description": "Saque",
+    "occurred_on": "2026-11-12",
+}
 CORPO = {
     "from_account_id": str(CORRENTE.id.value),
     "to_account_id": str(CARTAO.id.value),
@@ -51,7 +60,7 @@ def token(pessoa: uuid.UUID) -> dict[str, str]:
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     uow = FakeUnitOfWork()
-    for conta in (CORRENTE, CARTAO):
+    for conta in (CORRENTE, CARTAO, CORRENTE_BIA, CARTEIRA_BIA):
         await uow.accounts.add(conta)
 
     def criar(presenter: CreateTransferOutputPort) -> CreateTransferInputPort:
@@ -185,3 +194,46 @@ async def test_sem_token_responde_401(client: AsyncClient) -> None:
     corrigir = await client.put(f"{URL}/{uuid.uuid4()}", json=CORPO)
 
     assert listar.status_code == corrigir.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("campo_alheio", "conta_alheia"),
+    [("from_account_id", CORRENTE), ("to_account_id", CARTAO)],
+)
+async def test_corrigir_a_propria_apontando_conta_de_outra_pessoa_responde_422(
+    client: AsyncClient, campo_alheio: str, conta_alheia: Account
+) -> None:
+    criada = await client.post(URL, json=CORPO_BIA, headers=token(BIA))
+    transfer_id = criada.json()["id"]
+
+    resposta = await client.put(
+        f"{URL}/{transfer_id}",
+        json={**CORPO_BIA, campo_alheio: str(conta_alheia.id.value)},
+        headers=token(BIA),
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_transfer",
+        "fields": [{"field": campo_alheio, "problem": "not_found"}],
+    }
+    lista = await client.get(URL, params=PERIODO, headers=token(BIA))
+    assert lista.json()["transfers"] == [{"id": transfer_id, **CORPO_BIA}]
+    assert (await client.get(URL, params=PERIODO, headers=token(ANA))).json()[
+        "transfers"
+    ] == []
+
+
+async def test_corrigir_a_de_outra_pessoa_com_contas_proprias_responde_404(
+    client: AsyncClient,
+) -> None:
+    transfer_id = await criar_uma(client)
+
+    resposta = await client.put(
+        f"{URL}/{transfer_id}", json=CORPO_BIA, headers=token(BIA)
+    )
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"error": "transfer_not_found"}
+    lista = await client.get(URL, params=PERIODO, headers=token(ANA))
+    assert lista.json()["transfers"] == [{"id": transfer_id, **CORPO}]

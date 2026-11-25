@@ -1,5 +1,3 @@
-import uuid
-
 from httpx import AsyncClient
 
 
@@ -133,7 +131,7 @@ async def test_listar_o_periodo_e_corrigir_o_valor_muda_os_saldos(
 
 
 async def test_corrigir_a_transferencia_de_outro_usuario_responde_404(
-    real_client: AsyncClient, auth_headers: dict[str, str]
+    real_client: AsyncClient, auth_headers: dict[str, str], intruso: dict[str, str]
 ) -> None:
     corrente = await abrir(real_client, auth_headers, "Corrente", "checking")
     carteira = await abrir(real_client, auth_headers, "Carteira", "wallet")
@@ -147,11 +145,6 @@ async def test_corrigir_a_transferencia_de_outro_usuario_responde_404(
     criada = await real_client.post(
         "/api/v1/transfers", json=corpo, headers=auth_headers
     )
-    email = f"intruso-{uuid.uuid4().hex}@acme.com"
-    senha = {"email": email, "password": "S3nha!Forte123"}
-    await real_client.post("/api/v1/users", json=senha)
-    login = await real_client.post("/api/v1/auth/login", json=senha)
-    intruso = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     resposta = await real_client.put(
         f"/api/v1/transfers/{criada.json()['id']}", json=corpo, headers=intruso

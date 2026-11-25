@@ -41,6 +41,7 @@ from tests.users.fakes.fake_token_verifier import FakeTokenVerifier
 URL = "/api/v1/recurrences"
 ANA, BIA = uuid.uuid4(), uuid.uuid4()
 CORRENTE = Account.open(OwnerId(ANA), AccountName("Corrente"), AccountKind.CHECKING)
+CARTEIRA_BIA = Account.open(OwnerId(BIA), AccountName("Carteira"), AccountKind.WALLET)
 CORPO = {
     "account_id": str(CORRENTE.id.value),
     "kind": "expense",
@@ -62,6 +63,7 @@ def token(pessoa: uuid.UUID) -> dict[str, str]:
 async def client() -> AsyncIterator[AsyncClient]:
     uow = FakeUnitOfWork()
     await uow.accounts.add(CORRENTE)
+    await uow.accounts.add(CARTEIRA_BIA)
     rules, clock = FakeRecurrenceRules(), FixedClock(date(2026, 11, 20))
 
     def criar(presenter: CreateRecurrenceOutputPort) -> CreateRecurrenceInputPort:
@@ -203,3 +205,56 @@ async def test_id_que_nao_e_uuid_responde_invalid_request(client: AsyncClient) -
 
     assert resposta.status_code == 422
     assert resposta.json()["error"] == "invalid_request"
+
+
+CORPO_BIA = {**CORPO, "account_id": str(CARTEIRA_BIA.id.value), "description": "Net"}
+CONTA_INEXISTENTE = [{"field": "account_id", "problem": "not_found"}]
+
+
+async def test_criar_em_conta_de_outra_pessoa_responde_422(
+    client: AsyncClient,
+) -> None:
+    resposta = await client.post(URL, json=CORPO, headers=token(BIA))
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_recurrence",
+        "fields": CONTA_INEXISTENTE,
+    }
+    for pessoa in (ANA, BIA):
+        lista = await client.get(URL, headers=token(pessoa))
+        assert lista.json()["recurrences"] == []
+
+
+async def test_mover_a_propria_para_conta_de_outra_pessoa_responde_422(
+    client: AsyncClient,
+) -> None:
+    criada = await client.post(URL, json=CORPO_BIA, headers=token(BIA))
+    assert criada.status_code == 201
+
+    resposta = await client.put(
+        f"{URL}/{criada.json()['id']}", json=CORPO, headers=token(BIA)
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json() == {
+        "error": "invalid_recurrence",
+        "fields": CONTA_INEXISTENTE,
+    }
+    lista = await client.get(URL, headers=token(BIA))
+    assert lista.json()["recurrences"] == [criada.json()]
+
+
+async def test_corrigir_a_de_outra_pessoa_com_conta_propria_responde_404(
+    client: AsyncClient,
+) -> None:
+    criada = await client.post(URL, json=CORPO, headers=token(ANA))
+
+    resposta = await client.put(
+        f"{URL}/{criada.json()['id']}", json=CORPO_BIA, headers=token(BIA)
+    )
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"error": "recurrence_not_found"}
+    lista = await client.get(URL, headers=token(ANA))
+    assert lista.json()["recurrences"] == [criada.json()]
