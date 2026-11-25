@@ -1,0 +1,180 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #f4f6f5;
+  color: #243b32;
+  font-family: Arial, sans-serif;
+}
+
+#app {
+  width: 100%;
+  max-width: 760px;
+}
+
+#app > div {
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 28px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px #0000000a;
+}
+
+h1 {
+  margin: 0 0 28px;
+  font-size: 26px;
+  text-align: center;
+}
+
+label {
+  display: block;
+  margin: 18px 0 8px;
+}
+
+input,
+button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd5cf;
+  border-radius: 6px;
+  font: inherit;
+}
+
+button {
+  background: #214f40;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+[role="alert"] {
+  color: #a33232;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid #528d70;
+  outline-offset: 2px;
+}
+
+#app > .dashboard {
+  max-width: none;
+}
+
+.dashboard-session,
+.account-row,
+.account-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dashboard-session,
+.account-row {
+  justify-content: space-between;
+}
+
+.dashboard-session p,
+.account-row h3,
+.account-row p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.dashboard button {
+  width: auto;
+}
+
+.accounts {
+  margin-top: 24px;
+  border-top: 1px solid #ccd5cf;
+}
+
+.account-actions {
+  margin-top: 12px;
+}
+
+.account-row .account-actions {
+  margin-top: 0;
+}
+
+.account-list {
+  list-style: none;
+  padding: 0;
+}
+
+.account-row {
+  padding: 12px 0;
+  border-bottom: 1px solid #ccd5cf;
+}
+
+.accounts select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd5cf;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.accounts select:focus-visible {
+  outline: 2px solid #528d70;
+  outline-offset: 2px;
+}
+
+.statement {
+  margin-top: 24px;
+  border-top: 1px solid #ccd5cf;
+}
+
+.statement-filters,
+.statement-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
+  gap: 12px;
+}
+
+.statement input[type="date"] {
+  min-width: 0;
+}
+
+.statement select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd5cf;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.statement select:focus-visible {
+  outline: 2px solid #528d70;
+  outline-offset: 2px;
+}
+
+.statement-totals > div {
+  background: #f4f6f5;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.statement-totals dd {
+  margin: 6px 0 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.statement-row h4 {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
