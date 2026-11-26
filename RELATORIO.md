@@ -7,7 +7,7 @@
 | Marjorie Mitzi Cavalcante Rodrigues | 231039140 | 14h | @Marjoriemitzi |
 | Samuel Nogueira Caetano | 231027186 | 14h | @samuelncaetano |
 | Laryssa Felix Ribeiro Lopes | 231026840 | 14h | @felixlaryssa |
-| Arthur Ribeiro e Sousa | 221007850 | 14h | @arthurrsousa |
+| Arthur Ribeiro e Sousa | 221007850 | 16h | @arthurrsousa |
 | Luis Henrique Luz Costa | 180066161 | 14h | @luishenrrique |
 | Pedro Henrique Pereira Santos | 232038442 | 14h | @pedrohpsantos |
 | Pedro Henrique dos Santos Ferreira | 211063229 | 14h | @pedro-hsf |
