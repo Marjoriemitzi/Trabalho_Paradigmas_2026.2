@@ -23,17 +23,30 @@
 
 O Gerenciador de Finanças Pessoais é uma aplicação web voltada para usuários que desejam controlar contas, transações, transferências e lançamentos recorrentes em um único lugar, com autenticação segura e isolamento de dados por usuário. A interface web foi construída em Elm seguindo o paradigma funcional, enquanto a API em FastAPI (Python) faz a ponte com o banco PostgreSQL e com o motor lógico em SWI-Prolog. O Prolog resolve de forma declarativa três problemas centrais de regras de negócio: classificação automática de transações por palavras-chave, cálculo de vencimento de recorrências semanais e mensais (incluindo anos bissextos e meses mais curtos) e validação de políticas de senha com geração de múltiplos motivos de erro.
 
+**1. Cadastro de usuário:** tela de criação de conta exibindo os requisitos da política de senha validada no motor Prolog (mínimo de 12 caracteres, maiúscula, minúscula, número e símbolo).
+
 ![Tela de cadastro com política de senha](docs/cadastro.jpeg)
+
+**2. Autenticação:** tela de login após o cadastro, exibindo a confirmação de criação da conta para acesso ao sistema.
 
 ![Tela de login após criação de conta](docs/login.jpeg)
 
+**3. Painel inicial:** visão do usuário autenticado antes de cadastrar contas financeiras, com acesso à gestão de contas e aos filtros de extrato.
+
 ![Painel principal com contas financeiras e extrato](docs/painel.jpeg)
+
+**4. Cadastro de conta financeira:** formulário para criação de uma nova conta (neste exemplo, uma carteira chamada *Admin conta*).
 
 ![Formulário de cadastro de nova conta financeira](docs/nova-conta.jpeg)
 
+**5. Registro de lançamento:** após a criação da conta, o usuário preenche uma despesa (*Boleto do condomínio*, R$ 260,50) associada à categoria *Moradia*.
+
 ![Conta criada e formulário de novo lançamento](docs/novo-lancamento.jpeg)
 
+**6. Extrato e saldo atualizados:** confirmação do lançamento criado, com o saldo da conta recalculado automaticamente (-R$ 260,50), resumo do período e opções para editar ou excluir a movimentação.
+
 ![Extrato atualizado com lançamento criado e saldo recalculado](docs/extrato.jpeg)
+
 
 ## 3. Como executar
 
