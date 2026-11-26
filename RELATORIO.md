@@ -29,6 +29,8 @@ O Gerenciador de Finanças Pessoais é uma aplicação web voltada para usuário
 
 ![Painel principal com contas financeiras e extrato](docs/painel.jpeg)
 
+![Formulário de cadastro de nova conta financeira](docs/nova-conta.jpeg)
+
 ## 3. Como executar
 
 **Requisitos:**
@@ -40,7 +42,7 @@ O Gerenciador de Finanças Pessoais é uma aplicação web voltada para usuário
 **Instalação e execução:**
 
 ```sh
-git clone [https://github.com/Marjoriemitzi/Trabalho_Paradigmas_2026.2.git](https://github.com/Marjoriemitzi/Trabalho_Paradigmas_2026.2.git)
+git clone https://github.com/Marjoriemitzi/Trabalho_Paradigmas_2026.2.git
 cd Trabalho_Paradigmas_2026.2
 
 # 1. Gerar o arquivo .env com segredos locais
@@ -51,7 +53,7 @@ sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/; s/^A
 docker compose build
 docker compose up -d
 docker compose ps
-curl [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+curl http://127.0.0.1:8000/health
 ```
 
 **Testes:**
