@@ -15,8 +15,8 @@
 - **Nome do projeto:** Gerenciador de Finanças Pessoais
 - **Nome do grupo:** Equipe: Gerenciador de finanças pessoais
 - **Repositório:** https://github.com/Marjoriemitzi/Trabalho_Paradigmas_2026.2
-- **Commit ou tag entregue:** `v1.0`
-- **Ponto de partida:** sistema próprio desenvolvido do zero pelo grupo (gerenciador de finanças pessoais)
+- **Commit ou tag entregue:** `main`
+- **Ponto de partida:** jogo inventado
 - **Slides da apresentação oral:** não há
 
 ## 2. Resumo
@@ -122,7 +122,7 @@ Frontend Elm (0.19.1) --HTTP/JSON (via ports JS)--> Backend FastAPI (Python 3.12
 - [ ] `findall/3`, `bagof/3`, `setof/3` ou similares: não utilizado diretamente nos arquivos `.pl`; a coleta das múltiplas soluções é feita pelo gateway via consultas iteradas no PySwip.
 - [x] Corte (`!`) ou negação (`\+`), e por que foram necessários: corte em `transaction_category/3` (`Backend/rules/finance/categorization.pl:16`) para impedir retorno ao fallback `outros` após encontrar uma categoria; cortes em `last_day/3` e `leap_year/1` (`Backend/rules/finance/recurrence.pl:14-19`) para garantir determinismo do calendário; negação por falha `\+` em `password_error/2` e `has_symbol/1` (`Backend/rules/users/password_policy.pl:14-26`) para expressar ausência de classes de caracteres.
 - [ ] Programação por restrições (CLP(FD) ou outra): não utilizado.
-- [ ] Predicados de ordem superior (`maplist`, `foldl`, `include`...): não utilizado.
+- [ ] Predicados de ordem superior (`maplist`, `foldl`, `include`, etc.): não utilizado.
 
 ### 5.3 Trecho em destaque
 
