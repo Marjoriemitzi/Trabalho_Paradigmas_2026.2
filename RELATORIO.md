@@ -33,6 +33,8 @@ O Gerenciador de Finanças Pessoais é uma aplicação web voltada para usuário
 
 ![Conta criada e formulário de novo lançamento](docs/novo-lancamento.jpeg)
 
+![Extrato atualizado com lançamento criado e saldo recalculado](docs/extrato.jpeg)
+
 ## 3. Como executar
 
 **Requisitos:**
